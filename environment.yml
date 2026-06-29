@@ -1,0 +1,6 @@
+name: app-mne-bids-sensor-analysis
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8

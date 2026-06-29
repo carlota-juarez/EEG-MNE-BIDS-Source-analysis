@@ -1,0 +1,33 @@
+#!/bin/bash
+#PBS -l nodes=1:ppn=1
+#PBS -l mem=16gb
+#PBS -l walltime=01:00:00
+set -e
+
+# Make output directory
+mkdir -p out_dir
+mkdir -p html_report
+
+#evitar que se lancen tanto threads como nucleos del host para que no de OOM en brainlife
+export OMP_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+export VECLIB_MAXIMUM_THREADS=1
+export SINGULARITYENV_OMP_NUM_THREADS=1
+export SINGULARITYENV_OPENBLAS_NUM_THREADS=1
+export SINGULARITYENV_MKL_NUM_THREADS=1
+export SINGULARITYENV_NUMEXPR_NUM_THREADS=1
+export SINGULARITYENV_VECLIB_MAXIMUM_THREADS=1
+
+#python main.py
+
+#esta no me da autenticacion
+#singularity exec docker://mnepython/mne:v1.6.1 python3 main.py
+
+
+#Guiomar meg
+#singularity exec docker://brainlife/mne:0.23dev python3 main.py
+
+# Mi propia imagen pero da error out of memory
+singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids-preprocessing:latest python3 ./main.py
