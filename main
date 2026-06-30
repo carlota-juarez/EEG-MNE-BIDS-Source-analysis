@@ -30,4 +30,4 @@ export SINGULARITYENV_VECLIB_MAXIMUM_THREADS=1
 #singularity exec docker://brainlife/mne:0.23dev python3 main.py
 
 # Mi propia imagen pero da error out of memory
-singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids-preprocessing:latest python3 ./main.py
+singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids:full python3 ./main.py
