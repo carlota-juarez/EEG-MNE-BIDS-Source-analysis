@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Current path
 
-__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+__location__ = Path(__file__).resolve().parent
 
 # Read the parameters from Brainlife 
 
@@ -47,17 +47,17 @@ html_report_dir = __location__/'html_report'
 
 # Ensure output directories exist
 
-deriv_root.mkdir(parents = True, exist_ok = True)
+if deriv_root.exists():
+    rmtree(deriv_root)
 html_report_dir.mkdir(parents = True, exist_ok = True)
 
 # Copy the input folder ('bids_root') in the output folder ('out_dir') to have all the data there
 
-if config.get('bids_root') and bids_root_path.exists():
-    copy_tree(config.get('bids_root'), deriv_root)
+copytree(bids_root_path, deriv_root, dirs_exist_ok = True)
 
 # Rewrite the info in the .json file into a .py file
 
-file_name = os.path.join(__location__, 'pipeline_config.py')
+file_name = __location__/'pipeline_config.py'
 
 # Inputs from the interface web to MNE variables
 
@@ -65,8 +65,22 @@ with open(file_name, 'w') as f:
 
     f.write(f"bids_root = '{bids_root_path}'\n")
     f.write(f"deriv_root = '{deriv_root}'\n")
+    f.write(f"ch_types = ['eeg']\n")
 
-    # General settings
+    # General settings (always nedeed)
+
+    subject = '001'
+    f.write(f"subjects = ['{subject}']\n")
+
+    task = config.get('task', None)
+    if task:
+        f.write(f"task = '{task}'\n")
+
+    task_is_rest = config.get('task_is_rest', False)
+    f.write(f"task_is_rest = {task_is_rest}\n")
+
+    interactive = config.get('interactive', False)
+    f.write(f"interactive = {interactive}\n")
 
     run_source_estimation = config.get('run_source_estimation', True)
     f.write(f"run_source_estimation = {run_source_estimation}\n")
@@ -152,7 +166,7 @@ with open(file_name, 'w') as f:
 
 # Run python script
 
-command = ["mne_bids_pipeline", f"--config={file_name}", "--steps=source,report"]
+command = ["mne_bids_pipeline", f"--config={file_name}", "--steps=source"]
 
 try:
     subprocess.run(command, check=True)
