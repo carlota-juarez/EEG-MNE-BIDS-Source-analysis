@@ -1,0 +1,28 @@
+{
+  "bids_dir": "/input/bids_dataset_sensor",
+  "task": "01",
+  "task_is_rest": false,
+  "interactive": false,
+  "run_source_estimation": true,
+  
+  "use_template_mri": "fsaverage",
+  "adjust_coreg": false,
+  "bem_mri_images": "auto",
+  "recreate_bem": false,
+  "recreate_scalp_surface": false,
+  "freesurfer_verbose": false,
+  
+  "mri_t1_path_generator": null,
+  "mri_landmarks_kind": null,
+  "spacing": "oct6",
+  "mindist": 5,
+  
+  "loose": 0.2,
+  "depth": 0.8,
+  "inverse_method": "dSPM",
+  "noise_cov": ["emptyroom", "ad_hoc"],
+  "noise_cov_method": "shrunk",
+  "cov_rank": "info",
+  "source_info_path_update": null,
+  "inverse_targets": ["evoked"]
+}
