@@ -1,5 +1,6 @@
 {
   "bids_dir": "/input/bids_dataset_sensor",
+  "fs_license": "./license.txt",
   "task": "01",
   "task_is_rest": false,
   "interactive": false,

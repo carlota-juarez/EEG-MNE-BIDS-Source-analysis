@@ -203,16 +203,17 @@ with open(file_name, 'w') as f:
 
 # Run python script
 
+# Cuando quiero ejecutar el análisis de fuentes y cuando use_template_mri (vacio) porque se va a procesar anatomía real del sujeto y no plantilla estandar
 needs_recon_all = run_source_estimation and not use_template_mri
 
 if needs_recon_all:
     # recon-all requires a freesurfer license file
     fs_license = config.get('fs_license', None)
-    fs_home = os.environ.get('FREESURFER_HOME', '/opt/freesurfer')
-    license_target = Path(fs_home)/'license.txt'
+    license_target = __location__/'license.txt'
     if fs_license:
         copyfile(Path(fs_license).resolve(), license_target)
-    if not license_target.exists():
+        os.environ['FS_LICENSE'] = str(license_target.resolve())
+    if not license_target.exists() and not os.environ.get('FS_LICENSE'):
         raise FileNotFoundError("Provide a valid license in the 'fs_license' parameter, or set 'use_template_mri' to skip recon-all")
     steps = "freesurfer,source"
 else:
