@@ -103,6 +103,10 @@ with open(file_name, 'w') as f:
     
     # --------------
     run_source_estimation = config.get('run_source_estimation', True)
+    if task_is_rest and not conditions and run_source_estimation:
+        logger.warning("task_is_rest=True and no 'conditions' were provided, no evoked data created at the sensor-analysis stage, so source estimation cannot run for this dataset")
+        run_source_estimation = False
+        #the following steps will not be run, the html report will be the same as the one after sensor analysis
     f.write(f"run_source_estimation = {run_source_estimation}\n")
 
     subjects_dir = config.get('subjects_dir', None)
