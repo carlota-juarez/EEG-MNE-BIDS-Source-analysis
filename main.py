@@ -105,6 +105,12 @@ with open(file_name, 'w') as f:
     run_source_estimation = config.get('run_source_estimation', True)
     f.write(f"run_source_estimation = {run_source_estimation}\n")
 
+    subjects_dir = config.get('subjects_dir', None)
+    if not subjects_dir:
+        subjects_dir = deriv_root/'freesurfer'/'subjects'
+        subjects_dir.mkdir(parents = True, exist_ok = True)
+    f.write(f"subjects_dir = '{subjects_dir}'\n")
+
     # BEM surface
     use_template_mri = config.get('use_template_mri', None)
     if use_template_mri:
