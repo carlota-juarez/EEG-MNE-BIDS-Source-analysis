@@ -95,7 +95,7 @@ with open(file_name, 'w') as f:
     conditions = config.get('conditions', None)
     if conditions:
         f.write(f"conditions = {conditions}\n")
-    else:
+    elif not task_is_rest:
         raise ValueError("'conditions' parameter is required unless task_is_rest is True")
 
     interactive = config.get('interactive', False)

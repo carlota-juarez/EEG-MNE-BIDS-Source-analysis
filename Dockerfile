@@ -41,7 +41,23 @@ RUN pip install --no-cache-dir \
 
 RUN curl -fsSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-linux-ubuntu22_amd64-7.4.1.tar.gz \
     | tar -xz -C /opt && \
-    rm -rf /opt/freesurfer/subjects/fsaverage3 /opt/freesurfer/subjects/fsaverage4 /opt/freesurfer/subjects/fsaverage5 /opt/freesurfer/subjects/fsaverage6 /opt/freesurfer/subjects/cv90 /opt/freesurfer/trctrain
+    rm -rf \
+        /opt/freesurfer/subjects/fsaverage3 \
+        /opt/freesurfer/subjects/fsaverage4 \
+        /opt/freesurfer/subjects/fsaverage5 \
+        /opt/freesurfer/subjects/fsaverage6 \
+        /opt/freesurfer/subjects/cv90 \
+        /opt/freesurfer/subjects/bert \
+        /opt/freesurfer/subjects/sample \
+        /opt/freesurfer/subjects/V1_average \
+        /opt/freesurfer/subjects/fsaverage_sym \
+        /opt/freesurfer/subjects/cvs_avg35 \
+        /opt/freesurfer/subjects/cvs_avg35_inMNI152 \
+        /opt/freesurfer/trctrain \
+        /opt/freesurfer/fsfast \
+        /opt/freesurfer/matlab \
+        /opt/freesurfer/docs \
+        /opt/freesurfer/average
 
 WORKDIR /work
  
