@@ -123,6 +123,7 @@ with open(file_name, 'w') as f:
     f.write(f"subjects_dir = '{subjects_dir}'\n")
 
     # BEM surface
+    # Cuando este parámetro no está definido, mne ejecuta recon-all de freesurfer
     use_template_mri = config.get('use_template_mri', None)
     if use_template_mri:
         f.write(f"use_template_mri = '{use_template_mri}'\n")
@@ -203,7 +204,8 @@ with open(file_name, 'w') as f:
 
 # Run python script
 
-# Cuando quiero ejecutar el análisis de fuentes y cuando use_template_mri (vacio) porque se va a procesar anatomía real del sujeto y no plantilla estandar
+# Cuando quiero ejecutar el análisis de fuentes (run_source_estimation) y cuando use_template_mri esté vacío 
+# Se va a procesar anatomía real del sujeto y no plantilla estandar
 needs_recon_all = run_source_estimation and not use_template_mri
 
 if needs_recon_all:
@@ -211,7 +213,8 @@ if needs_recon_all:
     fs_license = config.get('fs_license', None)
     license_target = __location__/'license.txt'
     if fs_license:
-        copyfile(Path(fs_license).resolve(), license_target)
+        with open(license_target, 'w') as file:
+            file.write(fs_license)
         os.environ['FS_LICENSE'] = str(license_target.resolve())
     if not license_target.exists() and not os.environ.get('FS_LICENSE'):
         raise FileNotFoundError("Provide a valid license in the 'fs_license' parameter, or set 'use_template_mri' to skip recon-all")
