@@ -62,6 +62,10 @@ html_report_dir.mkdir(parents = True, exist_ok = True)
 
 copytree(bids_root_path, deriv_root, dirs_exist_ok = True)
 
+# If there is an input t1w file
+
+t1w_path = config.get('t1', None)
+
 # Rewrite the info in the .json file into a .py file
 
 file_name = __location__/'pipeline_config.py'
@@ -72,6 +76,7 @@ with open(file_name, 'w') as f:
 
     f.write(f"bids_root = '{bids_root_path}'\n")
     f.write(f"deriv_root = '{deriv_root}'\n")
+    f.write(f"t1w = '{t1w_path}'\n")
 
     data_type = config.get('data_type')
     if not data_type:
@@ -209,6 +214,14 @@ with open(file_name, 'w') as f:
 needs_recon_all = run_source_estimation and not use_template_mri
 
 if needs_recon_all:
+
+    if not t1w_path:
+        raise FileNotFoundError("A T1w es needed to execute recon-all or set 'use_template_mri' to skip it")
+    anat_dir = deriv_root/f'sub-001'/'anat'
+    anat_dir.mkdir(parents=True, exist_ok=True)
+    t1w_root_path = Path(t1w_path).resolve()
+    copyfile(t1w_root_path, anat_dir/f'sub-001_T1w.nii.gz')
+
     # recon-all requires a freesurfer license file
     fs_license = config.get('fs_license', None)
     license_target = __location__/'license.txt'
@@ -217,8 +230,9 @@ if needs_recon_all:
             file.write(fs_license)
         os.environ['FS_LICENSE'] = str(license_target.resolve())
     if not license_target.exists() and not os.environ.get('FS_LICENSE'):
-        raise FileNotFoundError("Provide a valid license in the 'fs_license' parameter, or set 'use_template_mri' to skip recon-all")
+        raise FileNotFoundError("Provide a valid license in the 'fs_license' parameter or set 'use_template_mri' to skip recon-all")
     steps = "freesurfer,source"
+
 else:
     steps = "source"
 
