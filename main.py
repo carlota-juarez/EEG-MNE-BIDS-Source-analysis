@@ -92,7 +92,7 @@ with open(file_name, 'w') as f:
 
     # General settings (always nedeed)
 
-    subject = '001'
+    subject = '01'
     f.write(f"subjects = ['{subject}']\n")
 
     task = config.get('task', None)
