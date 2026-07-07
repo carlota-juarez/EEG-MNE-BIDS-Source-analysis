@@ -19,8 +19,6 @@ import mne
 import mne_bids
 import logging
 
-# PARA EL SOURCE ANALYSIS SI QUE NECESITO USAR UN CONTENEDOR CON FREESURFER
-
 # Logger configuration
 
 logging.basicConfig(level = logging.DEBUG)
