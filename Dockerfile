@@ -24,6 +24,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         unzip \
         libgomp1 \
         libgsl-dev \
+        libegl1 \
+        libxkbcommon-x11-0 \
+        libdbus-1-3 \
+        libxcb-icccm4 \
+        libxcb-image0 \
+        libxcb-keysyms1 \
+        libxcb-randr0 \
+        libxcb-render-util0 \
+        libxcb-xinerama0 \
+        libsm6 \
+        libxext6 \
+        libxrender1 \
+        libfontconfig1 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
  
@@ -35,6 +48,9 @@ RUN pip install --no-cache-dir \
         mne \
         mne-bids \
         mne-bids-pipeline==1.10.1 \
+        pyvista \
+        pyvistaqt \
+        PyQt5 \
     && find /usr/local/lib/python3.11 -type d -name "__pycache__" -exec rm -rf {} + \
     && find /usr/local/lib/python3.11 -type d \( -name "tests" -o -name "test" \) -exec rm -rf {} + \
     && rm -rf /root/.cache /tmp/*
