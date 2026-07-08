@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 import subprocess
 import os 
-from shutil import copyfile, rmtree, copytree
+from shutil import copyfile, rmtree, copytree, copy
 import mne
 import mne_bids
 import logging
@@ -42,8 +42,25 @@ with open (config_path, 'r') as f:
 bids_root = config.get('bids_dir')
 if not bids_root:
     raise ValueError("'bids_dir' parameter is required")
-
 bids_root_path = Path(bids_root).resolve()
+
+t1 = config.get('t1')
+t1_path = Path(t1).resolve()
+try:
+    if t1_path.exists():
+    # creamos la carpeta
+        anat_destination_dir = bids_root_path / 'sub-01' / 'anat'
+        anat_destination_dir.mkdir(parents=True, exist_ok=True)
+
+        # mantenemos la extension 
+        extension = "".join(t1_path.suffixes)
+        t1w_destination_file = anat_destination_dir / f"sub-01_T1w{extension}"
+        if not t1w_destination_file.exists():
+            shutil.copy(t1_path, t1w_destination_file)
+        else:
+            raise FileNotFoundError("The specified file does not exists in the t1_path")
+except Exception as e:
+    logger.error("An error has ocurred with the copy of the t1w file")
 
 # Output paths
 
@@ -60,10 +77,6 @@ html_report_dir.mkdir(parents = True, exist_ok = True)
 
 copytree(bids_root_path, deriv_root, dirs_exist_ok = True)
 
-# If there is an input t1w file
-
-t1w_path = config.get('t1', None)
-
 # Rewrite the info in the .json file into a .py file
 
 file_name = __location__/'pipeline_config.py'
@@ -74,7 +87,7 @@ with open(file_name, 'w') as f:
 
     f.write(f"bids_root = '{bids_root_path}'\n")
     f.write(f"deriv_root = '{deriv_root}'\n")
-    f.write(f"t1w = '{t1w_path}'\n")
+    f.write(f"t1 = '{t1}'\n")
 
     data_type = config.get('data_type')
     if not data_type:
