@@ -130,7 +130,7 @@ with open(file_name, 'w') as f:
     f.write(f"subjects_dir = '{subjects_dir}'\n")
 
     # BEM surface
-    # Cuando este parámetro no está definido, mne ejecuta recon-all de freesurfer
+    # When this parameter is not defined, FreeSurfer runs recon-all
     use_template_mri = config.get('use_template_mri', None)
     if use_template_mri:
         f.write(f"use_template_mri = '{use_template_mri}'\n")
@@ -210,9 +210,8 @@ with open(file_name, 'w') as f:
         f.write(f"inverse_targets = {inverse_targets}\n")
 
 # Run python script
-
-# Cuando quiero ejecutar el análisis de fuentes (run_source_estimation) y cuando use_template_mri esté vacío 
-# Se va a procesar anatomía real del sujeto y no plantilla estandar
+# When running source analysis is desired (run_source_estimation = True) and use_template_montage is empty
+# The subject's actual anatomy will be used and not a standard template
 needs_recon_all = run_source_estimation and not use_template_mri
 
 if needs_recon_all:
@@ -244,15 +243,6 @@ try:
     subprocess.run(command, check=True)
 except subprocess.CalledProcessError as e:
     raise e
-
-'''
-command = ["mne_bids_pipeline", f"--config={file_name}", "--steps=source"]
-
-try:
-    subprocess.run(command, check=True)
-except subprocess.CalledProcessError as e:
-    raise e
-'''
 
 # Find the reports and make a copy in out_html folder
 
