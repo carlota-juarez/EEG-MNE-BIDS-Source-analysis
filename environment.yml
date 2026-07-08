@@ -3,4 +3,17 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.8
+  - python=3.11
+  - pip
+  - pip:
+      - numpy<2.0.0
+      - scipy
+      - matplotlib
+      - scikit-learn
+      - mne
+      - mne-bids
+      - mne-bids-pipeline==1.10.1
+      - nibabel 
+
+# Note that if you plan to use real subject's data (Freesurfer runs recon-all)
+# you must have FreeSurfer installed on your system, since Conda will not install it automatically
