@@ -88,6 +88,10 @@ with open(file_name, 'w') as f:
         ch_types = [meg_ch_types]
     f.write(f"ch_types = {ch_types}\n")
 
+    eeg_template_montage = config.get('eeg_template_montage', None)
+    if eeg_template_montage:
+        f.write(f"eeg_template_montage = '{eeg_template_montage}'\n")
+
     # General settings (always nedeed)
 
     subject = '01'
@@ -158,21 +162,21 @@ with open(file_name, 'w') as f:
         f.write(f"mri_landmarks_kind = {mri_landmarks_kind}\n")
 
     spacing = config.get('spacing', 'oct6')
-    if spacing:
+    if spacing is not None:
         f.write(f"spacing = '{spacing}'\n")
 
     mindist = config.get('mindist', 5)
-    if mindist:
+    if mindist is not None:
         f.write(f"mindist = {mindist}\n")
 
     # Inverse solution
 
     loose = config.get('loose', 0.2)
-    if loose:
+    if loose is not None:
         f.write(f"loose = {loose}\n")
     
     depth = config.get('depth', 0.8)
-    if depth:
+    if depth is not None:
         f.write(f"depth = {depth}\n")
 
     inverse_method = config.get('inverse_method', 'dSPM')
@@ -215,10 +219,10 @@ if needs_recon_all:
 
     if not t1w_path:
         raise FileNotFoundError("A T1w es needed to execute recon-all or set 'use_template_mri' to skip it")
-    anat_dir = deriv_root/f'sub-001'/'anat'
+    anat_dir = deriv_root/f'sub-{subject}'/'anat'
     anat_dir.mkdir(parents=True, exist_ok=True)
     t1w_root_path = Path(t1w_path).resolve()
-    copyfile(t1w_root_path, anat_dir/f'sub-001_T1w.nii.gz')
+    copyfile(t1w_root_path, anat_dir/f'sub-{subject}_T1w.nii.gz')
 
     # recon-all requires a freesurfer license file
     fs_license = config.get('fs_license', None)
