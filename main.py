@@ -83,14 +83,13 @@ with open(file_name, 'w') as f:
 
     if data_type == 'eeg':
         ch_types = ['eeg']
+        eeg_template_montage = config.get('eeg_template_montage', None)
+        if eeg_template_montage:
+            f.write(f"eeg_template_montage = '{eeg_template_montage}'\n")
     else:
         meg_ch_types = config.get('meg_ch_types', 'meg')
         ch_types = [meg_ch_types]
     f.write(f"ch_types = {ch_types}\n")
-
-    eeg_template_montage = config.get('eeg_template_montage', None)
-    if eeg_template_montage:
-        f.write(f"eeg_template_montage = '{eeg_template_montage}'\n")
 
     # General settings (always nedeed)
 
