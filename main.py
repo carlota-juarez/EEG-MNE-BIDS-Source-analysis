@@ -56,9 +56,9 @@ try:
         extension = "".join(t1_path.suffixes)
         t1w_destination_file = anat_destination_dir / f"sub-01_T1w{extension}"
         if not t1w_destination_file.exists():
-            shutil.copy(t1_path, t1w_destination_file)
+            copy(t1_path, t1w_destination_file)
         else:
-            raise FileNotFoundError("The specified file does not exists in the t1_path")
+            logger.error("The specified file already exists in bids_root_path")
 except Exception as e:
     logger.error("An error has ocurred with the copy of the t1w file")
 
