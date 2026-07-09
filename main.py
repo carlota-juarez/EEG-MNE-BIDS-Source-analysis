@@ -243,15 +243,18 @@ with open(file_name, 'w') as f:
         extension = "".join(t1_path.suffixes)
         copyfile(t1_path, anat_dir/f'sub-{subject}_T1w{extension}')
 
+        # Ruta absoluta
+        license_target = Path(os.getcwd()).resolve() / 'license.txt'
         # recon-all requires a freesurfer license file
         fs_license = config.get('fs_license', None)
-        license_target = __location__/'license.txt'
-        if fs_license:
+        if fs_license and fs_license.strip() != "":
             with open(license_target, 'w') as file:
                 file.write(fs_license.strip() + "\n")
         
         if license_target.exists():
             f.write(f"freesurfer_license = '{str(license_target.resolve())}'\n")
+            # Además de escribirlo en el archivo, se lo inyectamos a la fuerza al entorno de procesos de Python
+            os.environ['FS_LICENSE'] = str(license_target.resolve())
         else:
             raise FileNotFoundError("Provide a valid license in the 'fs_license' parameter or set 'use_template_mri' to skip recon-all")
         
