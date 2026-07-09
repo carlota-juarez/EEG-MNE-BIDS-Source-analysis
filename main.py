@@ -214,7 +214,7 @@ with open(file_name, 'w') as f:
 
         if not t1_path:
             raise FileNotFoundError("A T1w es needed to execute recon-all or set 'use_template_mri' to skip it")
-        # copiar el t1w al directorio BIDS 
+        # Copy the t1w file to the BIDS directory 
         anat_dir = deriv_root/f'sub-{subject}'/'anat'
         anat_dir.mkdir(parents=True, exist_ok=True)
         t1w_root_path = Path(t1w_path).resolve()
