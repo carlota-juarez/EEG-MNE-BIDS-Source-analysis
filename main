@@ -23,5 +23,4 @@ export SINGULARITY_DOCKER_INSECURE=1
 export GODEBUG=http2client=0
 
 # Own image (uploaded to GitHub)
-# The singularuty call is wraped with xvfb-run so the container can draw 3D graphics without complaining about the lack of a monitor
-xvfb-run --server-args="-screen 0 1024x768x24" singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids:full python3 main.py
+singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids:full python3 main.py
