@@ -46,21 +46,6 @@ bids_root_path = Path(bids_root).resolve()
 
 t1 = config.get('t1')
 t1_path = Path(t1).resolve()
-try:
-    if t1_path.exists():
-    # creamos la carpeta
-        anat_destination_dir = bids_root_path / 'sub-01' / 'anat'
-        anat_destination_dir.mkdir(parents=True, exist_ok=True)
-
-        # mantenemos la extension 
-        extension = "".join(t1_path.suffixes)
-        t1w_destination_file = anat_destination_dir / f"sub-01_T1w{extension}"
-        if not t1w_destination_file.exists():
-            copy(t1_path, t1w_destination_file)
-        else:
-            logger.error("The specified file already exists in bids_root_path")
-except Exception as e:
-    logger.error("An error has ocurred with the copy of the t1w file")
 
 # Output paths
 
@@ -221,36 +206,38 @@ with open(file_name, 'w') as f:
     if inverse_targets:
         f.write(f"inverse_targets = {inverse_targets}\n")
 
-# Run python script
-# When running source analysis is desired (run_source_estimation = True) and use_template_montage is empty
-# The subject's actual anatomy will be used and not a standard template
-needs_recon_all = run_source_estimation and not use_template_mri
+    # When running source analysis is desired (run_source_estimation = True) and use_template_montage is empty
+    # The subject's actual anatomy will be used and not a standard template
+    needs_recon_all = run_source_estimation and not use_template_mri
 
-if needs_recon_all:
+    if needs_recon_all:
 
-    if not t1_path:
-        raise FileNotFoundError("A T1w es needed to execute recon-all or set 'use_template_mri' to skip it")
-    anat_dir = deriv_root/f'sub-{subject}'/'anat'
-    anat_dir.mkdir(parents=True, exist_ok=True)
-    t1w_root_path = Path(t1w_path).resolve()
-    copyfile(t1w_root_path, anat_dir/f'sub-{subject}_T1w.nii.gz')
+        if not t1_path:
+            raise FileNotFoundError("A T1w es needed to execute recon-all or set 'use_template_mri' to skip it")
+        # copiar el t1w al directorio BIDS 
+        anat_dir = deriv_root/f'sub-{subject}'/'anat'
+        anat_dir.mkdir(parents=True, exist_ok=True)
+        t1w_root_path = Path(t1w_path).resolve()
+        copyfile(t1_path, anat_dir/f'sub-{subject}_T1w.nii.gz')
 
-    # recon-all requires a freesurfer license file
-    fs_license = config.get('fs_license', None)
-    license_target = __location__/'license.txt'
-    if fs_license:
-        with open(license_target, 'w') as file:
-            file.write(fs_license)
-    
-    if license_target.exists():
-        f.write(f"freesurfer_license = '{str(license_target.resolve())}'\n")
+        # recon-all requires a freesurfer license file
+        fs_license = config.get('fs_license', None)
+        license_target = __location__/'license.txt'
+        if fs_license:
+            with open(license_target, 'w') as file:
+                file.write(fs_license.strip() + "\n")
+        
+        if license_target.exists():
+            f.write(f"freesurfer_license = '{str(license_target.resolve())}'\n")
+        else:
+            raise FileNotFoundError("Provide a valid license in the 'fs_license' parameter or set 'use_template_mri' to skip recon-all")
+        
+        steps = "freesurfer,source"
+
     else:
-        raise FileNotFoundError("Provide a valid license in the 'fs_license' parameter or set 'use_template_mri' to skip recon-all")
-    steps = "freesurfer,source"
+        steps = "source"
 
-else:
-    steps = "source"
-
+# Run python script
 command = ["mne_bids_pipeline", f"--config={file_name}", f"--steps={steps}"]
 
 try:
