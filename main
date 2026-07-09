@@ -22,5 +22,11 @@ export SINGULARITYENV_VECLIB_MAXIMUM_THREADS=1
 export SINGULARITY_DOCKER_INSECURE=1
 export GODEBUG=http2client=0
 
+# Force PyVista/VTK to use a virtual GPU
+
+export SINGULARITYENV_QT_QPA_PLATFORM="offscreen"
+export SINGULARITYENV_PYVISTA_OFF_SCREEN="true"
+export SINGULARITYENV_MPLBACKEND="Agg"
+
 # Own image (uploaded to GitHub)
 singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids:full python3 main.py
