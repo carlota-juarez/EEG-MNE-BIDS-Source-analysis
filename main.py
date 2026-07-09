@@ -19,6 +19,12 @@ import mne
 import mne_bids
 import logging
 
+# Force PyVista/VTK to use a virtual GPU
+
+os.environ['PYVISTA_OFF_SCREEN'] = 'true'
+os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+os.environ['MPLBACKEND'] = 'Agg'
+
 # Logger configuration
 
 logging.basicConfig(level = logging.DEBUG)
