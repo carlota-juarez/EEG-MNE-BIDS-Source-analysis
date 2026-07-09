@@ -265,7 +265,7 @@ with open(file_name, 'w') as f:
         steps = "source"
 
 # Run python script
-command = ["mne_bids_pipeline", f"--config={file_name}", f"--steps={steps}"]
+command = ["xvfb-run", "-a", "mne_bids_pipeline", f"--config={file_name}", f"--steps={steps}"]
 
 try:
     subprocess.run(command, check=True)
