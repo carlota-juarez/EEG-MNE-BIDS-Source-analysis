@@ -75,11 +75,6 @@ file_name = __location__/'pipeline_config.py'
 # Inputs from the interface web to MNE variables
 
 with open(file_name, 'w') as f:
-    # Offscreen settings for MNE and its subprocesses
-    f.write("import os\n")
-    f.write("os.environ['QT_QPA_PLATFORM'] = 'offscreen'\n")
-    f.write("os.environ['PYVISTA_OFF_SCREEN'] = 'true'\n")
-    f.write("os.environ['MPLBACKEND'] = 'Agg'\n\n")
 
     f.write(f"bids_root = '{bids_root_path}'\n")
     f.write(f"deriv_root = '{deriv_root}'\n")
