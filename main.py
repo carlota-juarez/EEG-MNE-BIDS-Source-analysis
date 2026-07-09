@@ -145,7 +145,7 @@ with open(file_name, 'w') as f:
     fsaverage_image = Path('/opt/mne_data/subjects/fsaverage')
     target_fsaverage = subjects_dir/'fsaverage'
     if fsaverage_image.exists() and not target_fsaverage.exists():
-        copytree(baked_fsaverage, target_fsaverage)
+        copytree(fsaverage_image, target_fsaverage)
 
     f.write(f"subjects_dir = '{subjects_dir}'\n")
 
