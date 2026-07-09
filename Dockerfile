@@ -25,18 +25,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libgomp1 \
         libgsl-dev \
         libegl1 \
+        libx11-6 \
+        libxkbcommon0 \
         libxkbcommon-x11-0 \
         libdbus-1-3 \
+        libxcb1 \
+        libxcb-cursor0 \
         libxcb-icccm4 \
         libxcb-image0 \
         libxcb-keysyms1 \
         libxcb-randr0 \
+        libxcb-render0 \
         libxcb-render-util0 \
+        libxcb-shape0 \
+        libxcb-shm0 \
+        libxcb-sync1 \
+        libxcb-xfixes0 \
         libxcb-xinerama0 \
+        libxcb-xkb1 \
+        libice6 \
         libsm6 \
         libxext6 \
         libxrender1 \
         libfontconfig1 \
+        libfreetype6 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
  

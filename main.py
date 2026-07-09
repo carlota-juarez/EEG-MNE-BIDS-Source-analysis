@@ -228,7 +228,7 @@ needs_recon_all = run_source_estimation and not use_template_mri
 
 if needs_recon_all:
 
-    if not t1w_path:
+    if not t1_path:
         raise FileNotFoundError("A T1w es needed to execute recon-all or set 'use_template_mri' to skip it")
     anat_dir = deriv_root/f'sub-{subject}'/'anat'
     anat_dir.mkdir(parents=True, exist_ok=True)
