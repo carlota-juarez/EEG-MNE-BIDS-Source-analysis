@@ -44,8 +44,11 @@ if not bids_root:
     raise ValueError("'bids_dir' parameter is required")
 bids_root_path = Path(bids_root).resolve()
 
-t1 = config.get('t1')
-t1_path = Path(t1).resolve()
+t1 = config.get('t1', None)
+if t1:
+    t1_path = Path(t1).resolve()
+else:
+    t1_path = None
 
 # Output paths
 
@@ -212,13 +215,13 @@ with open(file_name, 'w') as f:
 
     if needs_recon_all:
 
-        if not t1_path:
+        if not t1_path is None or not t1_path.exists():
             raise FileNotFoundError("A T1w es needed to execute recon-all or set 'use_template_mri' to skip it")
         # Copy the t1w file to the BIDS directory 
         anat_dir = deriv_root/f'sub-{subject}'/'anat'
         anat_dir.mkdir(parents=True, exist_ok=True)
-        t1w_root_path = Path(t1w_path).resolve()
-        copyfile(t1_path, anat_dir/f'sub-{subject}_T1w.nii.gz')
+        extension = "".join(t1_path.suffixes)
+        copyfile(t1_path, anat_dir/f'sub-{subject}_T1w{extension}')
 
         # recon-all requires a freesurfer license file
         fs_license = config.get('fs_license', None)
