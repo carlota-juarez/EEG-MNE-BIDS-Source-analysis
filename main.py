@@ -76,6 +76,7 @@ file_name = __location__/'pipeline_config.py'
 
 with open(file_name, 'w') as f:
     # Offscreen settings for MNE and its subprocesses
+    f.write("import os\n")
     f.write("os.environ['QT_QPA_PLATFORM'] = 'offscreen'\n")
     f.write("os.environ['PYVISTA_OFF_SCREEN'] = 'true'\n")
     f.write("os.environ['MPLBACKEND'] = 'Agg'\n\n")
