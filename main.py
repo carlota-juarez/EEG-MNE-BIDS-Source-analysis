@@ -75,7 +75,7 @@ with open(file_name, 'w') as f:
     
     f.write("import mne\n")
     f.write("mne.viz.set_3d_backend('pyvista')\n")
-    # Forzar las variables de entorno dentro del propio archivo que leerán todos los subprocesos
+    # Set environment variables within the file itself so all the subprocesses will read them
     f.write("import os\n")
     f.write("os.environ['PYVISTA_OFF_SCREEN'] = 'true'\n")
     f.write("os.environ['MPLBACKEND'] = 'Agg'\n\n")
