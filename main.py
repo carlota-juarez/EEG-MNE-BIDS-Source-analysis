@@ -45,7 +45,7 @@ if not bids_root:
 bids_root_path = Path(bids_root).resolve()
 
 t1 = config.get('t1', None)
-if t1 and t1 not in ("", "null")
+if t1 and t1 not in ("", "null"):
     t1_path = Path(t1).resolve()
 else:
     t1_path = None
