@@ -45,10 +45,7 @@ if not bids_root:
 bids_root_path = Path(bids_root).resolve()
 
 t1 = config.get('t1', None)
-if t1 == "" or t1 == "null":
-    t1_path = None
-
-if t1:
+if t1 and t1 not in ("", "null")
     t1_path = Path(t1).resolve()
 else:
     t1_path = None
@@ -265,7 +262,7 @@ with open(file_name, 'w') as f:
         steps = "source"
 
 # Run python script
-command = ["xvfb-run", "-a", "mne_bids_pipeline", f"--config={file_name}", f"--steps={steps}"]
+command = ["xvfb-run", "-a", "--server-args=-screen 0 1920x1080x24", "mne_bids_pipeline", f"--config={file_name}", f"--steps={steps}"]
 
 try:
     subprocess.run(command, check=True)

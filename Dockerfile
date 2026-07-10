@@ -6,6 +6,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     QT_QPA_PLATFORM=offscreen \
     MNE_BROWSER_BACKEND=matplotlib \
     MPLBACKEND=Agg \
+    PYVISTA_OFF_SCREEN=true \
+    MESA_GL_VERSION_OVERRIDE=3.3 \
+    MNE_3D_OPTION_ANTIALIAS=false \
     OMP_NUM_THREADS=1 \
     OPENBLAS_NUM_THREADS=1 \
     MKL_NUM_THREADS=1 \
@@ -15,6 +18,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         libgl1 \
+        libgl1-mesa-dri \
+        libosmesa6 \
         xvfb \
         libglib2.0-0 \
         curl \
