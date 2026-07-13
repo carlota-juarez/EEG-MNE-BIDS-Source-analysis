@@ -3,12 +3,12 @@ FROM python:3.11-slim
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_NO_CACHE_DIR=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    QT_QPA_PLATFORM=offscreen \
     MNE_BROWSER_BACKEND=matplotlib \
     MPLBACKEND=Agg \
     PYVISTA_OFF_SCREEN=true \
-    MESA_GL_VERSION_OVERRIDE=3.3 \
+    PYVISTA_USE_PANEL=false \
     MNE_3D_OPTION_ANTIALIAS=false \
+    LIBGL_ALWAYS_SOFTWARE=1 \
     OMP_NUM_THREADS=1 \
     OPENBLAS_NUM_THREADS=1 \
     MKL_NUM_THREADS=1 \
@@ -20,7 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libgl1 \
         libgl1-mesa-dri \
         libosmesa6 \
-        xvfb \
         libglib2.0-0 \
         curl \
         tcsh \
@@ -30,34 +29,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         unzip \
         libgomp1 \
         libgsl-dev \
-        libegl1 \
-        libx11-6 \
-        libxkbcommon0 \
-        libxkbcommon-x11-0 \
-        libdbus-1-3 \
-        libxcb1 \
-        libxcb-cursor0 \
-        libxcb-icccm4 \
-        libxcb-image0 \
-        libxcb-keysyms1 \
-        libxcb-randr0 \
-        libxcb-render0 \
-        libxcb-render-util0 \
-        libxcb-shape0 \
-        libxcb-shm0 \
-        libxcb-sync1 \
-        libxcb-xfixes0 \
-        libxcb-xinerama0 \
-        libxcb-xkb1 \
-        libice6 \
-        libsm6 \
-        libxext6 \
-        libxrender1 \
         libfontconfig1 \
         libfreetype6 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
- 
+
 RUN pip install --no-cache-dir \
         "numpy<2" \
         "scipy" \
@@ -67,8 +43,8 @@ RUN pip install --no-cache-dir \
         mne-bids \
         mne-bids-pipeline==1.10.1 \
         pyvista \
-        pyvistaqt \
-        PyQt5 \
+    && pip uninstall -y vtk \
+    && pip install --no-cache-dir vtk-osmesa \
     && find /usr/local/lib/python3.11 -type d -name "__pycache__" -exec rm -rf {} + \
     && find /usr/local/lib/python3.11 -type d \( -name "tests" -o -name "test" \) -exec rm -rf {} + \
     && rm -rf /root/.cache /tmp/*
