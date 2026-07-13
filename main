@@ -21,14 +21,9 @@ export SINGULARITYENV_MKL_NUM_THREADS=4
 export SINGULARITYENV_NUMEXPR_NUM_THREADS=4
 export SINGULARITYENV_VECLIB_MAXIMUM_THREADS=4
 
-# Force PyVista/VTK to use a virtual GPU
-
-export SINGULARITYENV_QT_QPA_PLATFORM="offscreen"
+# Renderizado 3D headless (vtk-osmesa = Mesa por software, sin display real ni virtual)
 export SINGULARITYENV_PYVISTA_OFF_SCREEN="true"
 export SINGULARITYENV_MPLBACKEND="Agg"
 
-export SINGULARITYENV_DISPLAY=":99"
-export SINGULARITYENV_QT_QPA_PLATFORM="offscreen"
-
 # Own image (uploaded to GitHub)
-singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids:full xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24" python3 main.py
+singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids:full python3 main.py
