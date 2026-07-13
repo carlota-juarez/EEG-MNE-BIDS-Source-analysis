@@ -74,7 +74,6 @@ with open(file_name, 'w') as f:
     f.write("import os\n")
     f.write("os.environ['PYVISTA_OFF_SCREEN'] = 'true'\n")
     f.write("os.environ['MPLBACKEND'] = 'Agg'\n")
-    f.write("os.environ['QT_QPA_PLATFORM'] = 'offscreen'\n")
     f.write("os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'\n\n")
 
     # Solucionar problemas con la ventana emergente fantasma 
