@@ -1,5 +1,3 @@
-# Copyright (c) 2026 brainlife.io
-
 # This file is a MNE python-based brainlife.io App
 
 # Author: Guiomar Niso Galán
