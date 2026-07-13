@@ -71,18 +71,21 @@ file_name = __location__/'pipeline_config.py'
 
 with open(file_name, 'w') as f:
     
-    f.write("import mne\n")
-    f.write("mne.viz.set_3d_backend('pyvista')\n")
-    # Set environment variables within the file itself so all the subprocesses will read them
     f.write("import os\n")
     f.write("os.environ['PYVISTA_OFF_SCREEN'] = 'true'\n")
-    f.write("os.environ['MPLBACKEND'] = 'Agg'\n\n")
+    f.write("os.environ['MPLBACKEND'] = 'Agg'\n")
+    f.write("os.environ['QT_QPA_PLATFORM'] = 'offscreen'\n")
+    f.write("os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'\n\n")
 
     # Solucionar problemas con la ventana emergente fantasma 
     f.write("import pyvista\n")
-    f.write("pyvista.global_theme.window_size = [1024, 768]\n")
     f.write("pyvista.OFF_SCREEN = True\n")
     f.write("pyvista.prefer_batch_rendering = True\n\n")
+    f.write("pyvista.global_theme.window_size = [1024, 768]\n")
+    f.write("pyvista.global_theme.interactive = False\n\n")
+
+    f.write("import mne\n")
+    f.write("mne.viz.set_3d_backend('pyvista')\n\n")
 
     f.write(f"bids_root = '{bids_root_path}'\n")
     f.write(f"deriv_root = '{deriv_root}'\n")
