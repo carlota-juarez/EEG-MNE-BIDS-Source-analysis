@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libgl1 \
         libgl1-mesa-dri \
         libosmesa6 \
+        libegl1 \
         libglib2.0-0 \
         curl \
         tcsh \
@@ -33,7 +34,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libfreetype6 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
-
+ 
+# Headless 3D rendering: since VTK 9.5 the standard PyPI 'vtk' wheel
+# (installed automatically as a dependency of pyvista) supports headless
+# rendering out of the box via EGL, and falls back to Mesa's software
+# rasterizer (llvmpipe) when no GPU is present -- as long as libegl1 is
+# installed and LIBGL_ALWAYS_SOFTWARE=1 is set (see ENV above). No
+# special 'vtk-osmesa' package (not on the standard PyPI index) or
+# Xvfb needed.
 RUN pip install --no-cache-dir \
         "numpy<2" \
         "scipy" \
@@ -46,8 +54,6 @@ RUN pip install --no-cache-dir \
         trame \
         trame-vtk \
         trame-vuetify \
-    && pip uninstall -y vtk \
-    && pip install --no-cache-dir vtk-osmesa \
     && find /usr/local/lib/python3.11 -type d -name "__pycache__" -exec rm -rf {} + \
     && find /usr/local/lib/python3.11 -type d \( -name "tests" -o -name "test" \) -exec rm -rf {} + \
     && rm -rf /root/.cache /tmp/*
