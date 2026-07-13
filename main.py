@@ -18,8 +18,6 @@ from shutil import copyfile, rmtree, copytree, copy
 import mne
 import mne_bids
 import logging
-import numpy as np
-import pyvista as pv
 
 # Logger configuration
 
@@ -279,28 +277,3 @@ for path in real_deriv_root.rglob("*.html"):
     if "sub-average" not in path.name:
         logger.info(f"{path.name} copied to the output")
         copyfile(path, html_report_dir/path.name)
-
-# Interactive 3D viewers
-pv.OFF_SCREEN = True
-
-interactive_dir = __location__/'interactive_3d'
-interactive_dir.mkdir(parents=True, exist_ok=True)
-
-# MNE-BIDS-Pipeline generates lh.pial/rh.pial in subjects_dir when using recon-all or fsaverage
-try:
-    lh_pial_candidates = list(subjects_dir.rglob('lh.pial'))
-    if lh_pial_candidates:
-        surf_dir = lh_pial_candidates[0].parent
-        plotter = pv.Plotter(off_screen=True)
-        for hemi in ('lh', 'rh'):
-            verts, tris = mne.read_surface(str(surf_dir/f'{hemi}.pial'))
-            faces = np.hstack([np.full((tris.shape[0], 1), 3), tris]).astype(np.int64)
-            mesh = pv.PolyData(verts, faces)
-            plotter.add_mesh(mesh, color='lightgray', smooth_shading=True)
-        out_path = interactive_dir/'brain_surface.html'
-        plotter.export_html(str(out_path))
-        logger.info(f"Interactive brain surface saved: {out_path.name}")
-    else:
-        logger.warning("No lh.pial found under subjects_dir, skipping interactive brain figure")
-except Exception as e:
-    logger.warning(f"Could not export interactive brain surface: {e}")
