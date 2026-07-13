@@ -1,6 +1,7 @@
 FROM python:3.11-slim
  
 ENV DEBIAN_FRONTEND=noninteractive \
+    VTK_DEFAULT_OPENGL_WINDOW=vtkOSOpenGLRenderWindow
     PIP_NO_CACHE_DIR=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     MNE_BROWSER_BACKEND=matplotlib \
@@ -70,8 +71,6 @@ RUN pip install --no-cache-dir \
         pyvista \
         pyvistaqt \
         PyQt5 \
-    && pip uninstall -y vtk \
-    && pip install --no-cache-dir vtk-osmesa \
     && find /usr/local/lib/python3.11 -type d -name "__pycache__" -exec rm -rf {} + \
     && find /usr/local/lib/python3.11 -type d \( -name "tests" -o -name "test" \) -exec rm -rf {} + \
     && rm -rf /root/.cache /tmp/*
