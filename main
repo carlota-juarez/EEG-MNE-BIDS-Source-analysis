@@ -27,5 +27,8 @@ export SINGULARITYENV_QT_QPA_PLATFORM="offscreen"
 export SINGULARITYENV_PYVISTA_OFF_SCREEN="true"
 export SINGULARITYENV_MPLBACKEND="Agg"
 
+export SINGULARITYENV_DISPLAY=":99"
+export SINGULARITYENV_QT_QPA_PLATFORM="offscreen"
+
 # Own image (uploaded to GitHub)
-xvfb-run --server-args="-screen 0 1024x768x24" singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids:full python3 main.py
+xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24" singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids:full python3 main.py
