@@ -12,6 +12,12 @@ import json
 from pathlib import Path
 import subprocess
 import os 
+
+# hay que fijarlas antes de importar pyvista/mne.viz
+os.environ.setdefault('PYVISTA_OFF_SCREEN', 'true')
+os.environ.setdefault('MPLBACKEND', 'Agg')
+os.environ.setdefault('MNE_3D_OPTION_ANTIALIAS', 'false')
+
 from shutil import copyfile, rmtree, copytree, copy
 import mne
 import mne_bids
@@ -21,6 +27,95 @@ import logging
 
 logging.basicConfig(level = logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+# GENERACIÓN DE FIGURAS 3D
+def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_report_dir, subject):
+    # Genera figuras 3D interactivas. 
+    # Devuelve una lista de tuplas (etiqueta, nombre_de_fichero) con lo que se generó correctamente.
+    import pyvista as pv
+    pv.OFF_SCREEN = True
+    # directorio de las figuras intercativas
+    interactive_dir = html_report_dir / 'interactive_3d'
+    interactive_dir.mkdir(parents=True, exist_ok=True)
+    
+    # inicialización de la lista
+    generated = []
+    # coregistro y superficies BEM
+    try:
+        trans_candidates = sorted(deriv_root.rglob(f"sub-{subject}*trans.fif"))
+        info_candidates = sorted(deriv_root.rglob(f"sub-{subject}*raw.fif")) or sorted(deriv_root.rglob(f"sub-{subject}*epo.fif"))
+        if not trans_candidates or not info_candidates:
+            logger.warning("No trans.fif/raw.fif files detected")
+        else:
+            info = mne.io.read_info(str(info_candidates[0]))
+            try:
+                fig = mne.viz.plot_alignment(
+                    info=info,
+                    trans=str(trans_candidates[0]),
+                    subject=fs_subject,
+                    subjects_dir=str(subjects_dir),
+                    surfaces=['head-dense', 'inner_skull', 'outer_skull'],
+                    coord_frame='mri',
+                    show_axes=True,
+                )
+            except Exception:
+                # si no existen superficies BEM
+                fig = mne.viz.plot_alignment(
+                    info=info,
+                    trans=str(trans_candidates[0]),
+                    subject=fs_subject,
+                    subjects_dir=str(subjects_dir),
+                    surfaces=['head'],
+                    coord_frame='mri',
+                    show_axes=True,
+                )
+            out_path = interactive_dir / f'sub-{subject}_coreg_bem.html'
+            fig.plotter.export_html(str(out_path))
+            fig.plotter.close()
+            generated.append(('Coregistracion y superficies BEM', out_path.name))
+            logger.info(f"Figura interactiva de coregistro/BEM guardada en {out_path}")
+    except Exception as e:
+        logger.warning(f"No se pudo generar la figura interactiva de coregistro/BEM: {e}")
+    # ESTIMACION DE FUENTES 
+    try:
+        stc_candidates = sorted(deriv_root.rglob(f"sub-{subject}*-lh.stc"))
+        if not stc_candidates:
+            logger.warning("No se encontro ningun fichero -lh.stc; se omite la figura de fuente")
+        else:
+            stc_stem = str(stc_candidates[0])[:-len('-lh.stc')]
+            stc = mne.read_source_estimate(stc_stem)
+            brain = stc.plot(
+                subject=fs_subject,
+                subjects_dir=str(subjects_dir),
+                hemi='both',
+                backend='pyvista',
+                time_viewer=False,
+                show_traces=False,
+            )
+            out_path = interactive_dir / f'sub-{subject}_source_estimate.html'
+            brain.plotter.export_html(str(out_path))
+            brain.close()
+            generated.append(('Estimacion de fuente', out_path.name))
+            logger.info(f"Figura interactiva de la estimacion de fuente guardada en {out_path}")
+    except Exception as e:
+        logger.warning(f"No se pudo generar la figura interactiva de la estimacion de fuente: {e}")          
+
+    # indice para todas las figuras
+    if generated:
+        index_path = interactive_dir / 'index.html'
+        with open(index_path, 'w', encoding='utf-8') as idx:
+            idx.write("<html><head><meta charset='utf-8'>"
+                       "<title>Visualizaciones 3D interactivas</title></head><body>")
+            idx.write(f"<h1>Sub-{subject}: visualizaciones 3D interactivas</h1>")
+            idx.write("<p>Arrastra con el boton izquierdo para rotar, "
+                       "rueda del raton para zoom.</p>")
+            for label, filename in generated:
+                idx.write(f"<h2>{label}</h2>")
+                idx.write(f"<iframe src='{filename}' width='100%' height='700' "
+                          f"style='border:none;'></iframe>")
+            idx.write("</body></html>")
+ 
+    return generated
 
 # Current path
 
@@ -76,10 +171,7 @@ with open(file_name, 'w') as f:
     f.write("os.environ['MPLBACKEND'] = 'Agg'\n")
     f.write("os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'\n\n")
 
-    f.write("os.environ['QT_QPA_PLATFORM'] = 'offscreen'\n")
-    f.write("os.environ['LIBGL_ALWAYS_SOFTWARE'] = '1'\n\n")
-    
-    # Solucionar problemas con la ventana emergente fantasma 
+    #Con vtk-osmesa el renderizado es 100% por software
     f.write("import pyvista\n")
     f.write("pyvista.OFF_SCREEN = True\n")
     f.write("pyvista.prefer_batch_rendering = True\n\n")
@@ -279,11 +371,51 @@ try:
 except subprocess.CalledProcessError as e:
     raise e
 
+# GENERAMOS VISUALIZACION 3D INTERACTIVAS
+# fs_subject: sujeto de FreeSurfer que realmente contiene las superficies
+# (fsaverage si se uso plantilla, o el sujeto reconstruido con recon-all)
+if use_template_mri:
+    fs_subject = use_template_mri
+elif (subjects_dir/f"sub-{subject}").exists():
+    fs_subject = f"sub-{subject}"
+else:
+    fs_subject = subject
+ 
+try:
+    generated_3d_figures = generate_interactive_3d_report(
+        subjects_dir=subjects_dir,
+        fs_subject=fs_subject,
+        deriv_root=deriv_root,
+        html_report_dir=html_report_dir,
+        subject=subject,
+    )
+except Exception as e:
+    logger.warning(f"No se pudieron generar las visualizaciones 3D interactivas: {e}")
+    generated_3d_figures = []
+
 # Find the reports and make a copy in out_html folder
 
 real_deriv_root = deriv_root.resolve()
 
+interactive_link_html = (
+    "<div style='padding:12px;margin-top:16px;background:#eef3ff;"
+    "border-top:2px solid #6699cc;font-family:sans-serif;'>"
+    "<a href='interactive_3d/index.html' target='_blank'>"
+    "Ver visualizaciones 3D interactivas (rota y haz zoom con el raton)</a></div>"
+)
+
 for path in real_deriv_root.rglob("*.html"):
     if "sub-average" not in path.name:
         logger.info(f"{path.name} copied to the output")
-        copyfile(path, html_report_dir/path.name)
+        dest = html_report_dir/path.name
+        copyfile(path, dest)
+        if generated_3d_figures:
+            try:
+                content = dest.read_text(encoding='utf-8')
+                if "</body>" in content:
+                    content = content.replace("</body>", interactive_link_html + "</body>")
+                else:
+                    content += interactive_link_html
+                dest.write_text(content, encoding='utf-8')
+            except Exception as e:
+                logger.warning(f"No se pudo insertar el enlace a las figuras interactivas en {dest.name}: {e}")
