@@ -76,6 +76,8 @@ with open(file_name, 'w') as f:
     f.write("os.environ['MPLBACKEND'] = 'Agg'\n")
     f.write("os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'\n\n")
 
+    f.write("os.environ['QT_QPA_PLATFORM'] = 'offscreen'\n")
+    
     # Solucionar problemas con la ventana emergente fantasma 
     f.write("import pyvista\n")
     f.write("pyvista.OFF_SCREEN = True\n")
