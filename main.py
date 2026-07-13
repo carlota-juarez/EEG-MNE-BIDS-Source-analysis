@@ -77,17 +77,21 @@ with open(file_name, 'w') as f:
     f.write("os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'\n\n")
 
     f.write("os.environ['QT_QPA_PLATFORM'] = 'offscreen'\n")
+    f.write("os.environ['LIBGL_ALWAYS_SOFTWARE'] = '1'\n\n")
     
     # Solucionar problemas con la ventana emergente fantasma 
     f.write("import pyvista\n")
+    f.write("pyvista.set_jupyter_backend('static')\n")
     f.write("pyvista.OFF_SCREEN = True\n")
     f.write("pyvista.prefer_batch_rendering = True\n\n")
-    f.write("pyvista.global_theme.window_size = [1024, 768]\n")
-    f.write("pyvista.global_theme.interactive = False\n\n")
 
     f.write("import mne\n")
     f.write("mne.viz.set_3d_backend('pyvista')\n\n")
 
+    f.write("plot_source_alignment = True\n")
+    f.write("report_image_width = 800\n")
+
+    # -----
     f.write(f"bids_root = '{bids_root_path}'\n")
     f.write(f"deriv_root = '{deriv_root}'\n")
     f.write(f"t1 = '{t1}'\n")
