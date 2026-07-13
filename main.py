@@ -138,7 +138,7 @@ with open(file_name, 'w') as f:
     subjects_dir.mkdir(parents = True, exist_ok = True)
 
     # Avoid network latency by copying fsaverage from the Docker image
-    fsaverage_image = Path('/opt/mne_data/subjects/fsaverage')
+    fsaverage_image = Path('/opt/freesurfer/subjects/fsaverage')
     target_fsaverage = subjects_dir/'fsaverage'
     if fsaverage_image.exists() and not target_fsaverage.exists():
         copytree(fsaverage_image, target_fsaverage)

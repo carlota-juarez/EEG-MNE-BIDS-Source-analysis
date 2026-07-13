@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libosmesa6 \
         libegl1 \
         xvfb \
+        xauth \
         libglib2.0-0 \
         curl \
         tcsh \
