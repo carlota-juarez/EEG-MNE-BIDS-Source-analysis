@@ -3,6 +3,7 @@ FROM python:3.11-slim
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_NO_CACHE_DIR=1 \
     PYTHONDONTWRITEBYTECODE=1 \
+    QT_QPA_PLATFORM=offscreen \
     MNE_BROWSER_BACKEND=matplotlib \
     MPLBACKEND=Agg \
     PYVISTA_OFF_SCREEN=true \
@@ -21,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libgl1-mesa-dri \
         libosmesa6 \
         libegl1 \
+        xvfb \
         libglib2.0-0 \
         curl \
         tcsh \
@@ -30,11 +32,40 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         unzip \
         libgomp1 \
         libgsl-dev \
+        libx11-6 \
+        libxkbcommon0 \
+        libxkbcommon-x11-0 \
+        libdbus-1-3 \
+        libxcb1 \
+        libxcb-cursor0 \
+        libxcb-icccm4 \
+        libxcb-image0 \
+        libxcb-keysyms1 \
+        libxcb-randr0 \
+        libxcb-render0 \
+        libxcb-render-util0 \
+        libxcb-shape0 \
+        libxcb-shm0 \
+        libxcb-sync1 \
+        libxcb-xfixes0 \
+        libxcb-xinerama0 \
+        libxcb-xkb1 \
+        libice6 \
+        libsm6 \
+        libxext6 \
+        libxrender1 \
         libfontconfig1 \
         libfreetype6 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
-
+ 
+# Headless 3D rendering: mne.viz.set_3d_backend('pyvista') internally
+# depends on pyvistaqt/qtpy, so PyQt5 must be installed even though we
+# never show a real window (QT_QPA_PLATFORM=offscreen handles that).
+# libegl1 + LIBGL_ALWAYS_SOFTWARE=1 let VTK's OpenGL context render via
+# software (llvmpipe) with no GPU; xvfb-run (used in main.py) is kept
+# as a safety net in case any component still insists on a real X
+# display.
 RUN pip install --no-cache-dir \
         "numpy<2" \
         "scipy" \
@@ -44,6 +75,8 @@ RUN pip install --no-cache-dir \
         mne-bids \
         mne-bids-pipeline==1.10.1 \
         pyvista \
+        pyvistaqt \
+        PyQt5 \
     && find /usr/local/lib/python3.11 -type d -name "__pycache__" -exec rm -rf {} + \
     && find /usr/local/lib/python3.11 -type d \( -name "tests" -o -name "test" \) -exec rm -rf {} + \
     && rm -rf /root/.cache /tmp/*
