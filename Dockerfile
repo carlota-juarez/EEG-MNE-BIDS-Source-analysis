@@ -58,14 +58,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libfreetype6 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
- 
-# Headless 3D rendering: mne.viz.set_3d_backend('pyvista') internally
-# depends on pyvistaqt/qtpy, so PyQt5 must be installed even though we
-# never show a real window (QT_QPA_PLATFORM=offscreen handles that).
-# libegl1 + LIBGL_ALWAYS_SOFTWARE=1 let VTK's OpenGL context render via
-# software (llvmpipe) with no GPU; xvfb-run (used in main.py) is kept
-# as a safety net in case any component still insists on a real X
-# display.
+
 RUN pip install --no-cache-dir \
         "numpy<2" \
         "scipy" \
@@ -80,8 +73,6 @@ RUN pip install --no-cache-dir \
     && find /usr/local/lib/python3.11 -type d -name "__pycache__" -exec rm -rf {} + \
     && find /usr/local/lib/python3.11 -type d \( -name "tests" -o -name "test" \) -exec rm -rf {} + \
     && rm -rf /root/.cache /tmp/*
-
-RUN python -c "import mne; from pathlib import Path; mne.datasets.fetch_fsaverage(subjects_dir=Path('/opt/mne_data/subjects'))"
 
 RUN curl -fsSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-linux-ubuntu22_amd64-7.4.1.tar.gz \
     | tar -xz -C /opt && \
