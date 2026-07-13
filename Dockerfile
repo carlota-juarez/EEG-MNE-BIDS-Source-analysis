@@ -43,6 +43,9 @@ RUN pip install --no-cache-dir \
         mne-bids \
         mne-bids-pipeline==1.10.1 \
         pyvista \
+        trame \
+        trame-vtk \
+        trame-vuetify \
     && pip uninstall -y vtk \
     && pip install --no-cache-dir vtk-osmesa \
     && find /usr/local/lib/python3.11 -type d -name "__pycache__" -exec rm -rf {} + \
