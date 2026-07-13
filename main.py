@@ -80,6 +80,11 @@ with open(file_name, 'w') as f:
     f.write("os.environ['PYVISTA_OFF_SCREEN'] = 'true'\n")
     f.write("os.environ['MPLBACKEND'] = 'Agg'\n\n")
 
+    # Solucionar problemas con la ventana emergente fantasma 
+    f.write("import pyvista\n")
+    f.write("pyvista.global_theme.window_size = [1024, 768]\n")
+    f.write("pyvista.OFF_SCREEN = True\n")
+    f.write("pyvista.prefer_batch_rendering = True\n\n")
 
     f.write(f"bids_root = '{bids_root_path}'\n")
     f.write(f"deriv_root = '{deriv_root}'\n")
