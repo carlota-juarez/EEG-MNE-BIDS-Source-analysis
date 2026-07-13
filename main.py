@@ -17,6 +17,8 @@ import os
 os.environ.setdefault('PYVISTA_OFF_SCREEN', 'true')
 os.environ.setdefault('MPLBACKEND', 'Agg')
 os.environ.setdefault('MNE_3D_OPTION_ANTIALIAS', 'false')
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+os.environ.setdefault('LIBGL_ALWAYS_SOFTWARE', '1')
 
 from shutil import copyfile, rmtree, copytree, copy
 import mne
@@ -34,6 +36,8 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
     # Devuelve una lista de tuplas (etiqueta, nombre_de_fichero) con lo que se generó correctamente.
     import pyvista as pv
     pv.OFF_SCREEN = True
+    mne.viz.set_3d_backend('pyvista')
+    
     # directorio de las figuras intercativas
     interactive_dir = html_report_dir / 'interactive_3d'
     interactive_dir.mkdir(parents=True, exist_ok=True)
@@ -171,10 +175,12 @@ with open(file_name, 'w') as f:
     f.write("os.environ['MPLBACKEND'] = 'Agg'\n")
     f.write("os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'\n\n")
 
+    f.write("os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')\n")
+    f.write("os.environ.setdefault('LIBGL_ALWAYS_SOFTWARE', '1')\n\n")
+
     #Con vtk-osmesa el renderizado es 100% por software
     f.write("import pyvista\n")
     f.write("pyvista.OFF_SCREEN = True\n")
-    f.write("pyvista.prefer_batch_rendering = True\n\n")
 
     f.write("import mne\n")
     f.write("mne.viz.set_3d_backend('pyvista')\n\n")
@@ -380,7 +386,14 @@ elif (subjects_dir/f"sub-{subject}").exists():
     fs_subject = f"sub-{subject}"
 else:
     fs_subject = subject
- 
+
+# mostrar contenido de lo que hay en deriv_root
+logger.info("Contenido de deriv_root")
+for p in sorted(deriv_root.rglob("*")):
+    if p.is_file() and p.suffix in ('.fif', '.stc', '.gz'):
+        logger.info(str(p.relative_to(deriv_root)))
+logger.info("Fin del contenido deriv_root")
+
 try:
     generated_3d_figures = generate_interactive_3d_report(
         subjects_dir=subjects_dir,
