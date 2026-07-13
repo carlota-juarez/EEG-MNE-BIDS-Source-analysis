@@ -81,7 +81,6 @@ with open(file_name, 'w') as f:
     
     # Solucionar problemas con la ventana emergente fantasma 
     f.write("import pyvista\n")
-    f.write("pyvista.set_jupyter_backend('static')\n")
     f.write("pyvista.OFF_SCREEN = True\n")
     f.write("pyvista.prefer_batch_rendering = True\n\n")
 
