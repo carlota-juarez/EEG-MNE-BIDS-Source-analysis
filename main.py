@@ -17,8 +17,7 @@ import os
 os.environ['PYVISTA_OFF_SCREEN'] = 'true'
 os.environ['MPLBACKEND'] = 'Agg'
 os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'
-os.environ['QT_QPA_PLATFORM'] = 'offscreen'
-os.environ['LIBGL_ALWAYS_SOFTWARE'] = '1'
+os.environ['VTK_DEFAULT_OPENGL_WINDOW'] = 'vtkOSOpenGLRenderWindow'
 
 # Desactivamos el backend 3D interactivo para evitar que VTK busque una ventana física
 os.environ['MNE_3D_BACKEND'] = 'pyvista'
@@ -179,9 +178,7 @@ with open(file_name, 'w') as f:
     f.write("os.environ['PYVISTA_OFF_SCREEN'] = 'true'\n")
     f.write("os.environ['MPLBACKEND'] = 'Agg'\n")
     f.write("os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'\n\n")
-
-    f.write("os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')\n")
-    f.write("os.environ.setdefault('LIBGL_ALWAYS_SOFTWARE', '1')\n\n")
+    f.write("os.environ['VTK_DEFAULT_OPENGL_WINDOW'] = 'vtkOSOpenGLRenderWindow'\n\n")
 
     #Con vtk-osmesa el renderizado es 100% por software
     f.write("import pyvista\n")
