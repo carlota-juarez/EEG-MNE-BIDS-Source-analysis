@@ -26,6 +26,7 @@ from shutil import copyfile, rmtree, copytree, copy
 import mne
 import mne_bids
 import logging
+from mne.viz import set_3d_backend
 
 # Logger configuration
 
