@@ -185,9 +185,6 @@ with open(file_name, 'w') as f:
     f.write("import mne\n")
     f.write("mne.viz.set_3d_backend('pyvista')\n\n")
 
-    f.write("plot_source_alignment = True\n")
-    f.write("report_image_width = 800\n")
-
     # -----
     f.write(f"bids_root = '{bids_root_path}'\n")
     f.write(f"deriv_root = '{deriv_root}'\n")
