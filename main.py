@@ -33,6 +33,8 @@ import logging
 logging.basicConfig(level = logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+logger.info("version nueva: 1")
+
 # GENERACIÓN DE FIGURAS 3D
 def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_report_dir, subject):
     # Genera figuras 3D interactivas. 
