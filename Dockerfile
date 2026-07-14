@@ -6,6 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     MNE_BROWSER_BACKEND=matplotlib \
     MPLBACKEND=Agg \
     PYVISTA_OFF_SCREEN=true \
+    QT_QPA_PLATFORM=offscreen \
     MNE_3D_OPTION_ANTIALIAS=false \
     VTK_DEFAULT_OPENGL_WINDOW=vtkOSOpenGLRenderWindow \
     LIBGL_ALWAYS_SOFTWARE=1 \
@@ -32,6 +33,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libgsl-dev \
         libfontconfig1 \
         libfreetype6 \
+        libxkbcommon0 \
+        libxkbcommon-x11-0 \
+        libdbus-1-3 \
+        libxcb-icccm4 \
+        libxcb-image0 \
+        libxcb-keysyms1 \
+        libxcb-randr0 \
+        libxcb-render-util0 \
+        libxcb-shape0 \
+        libxcb-sync1 \
+        libxcb-xfixes0 \
+        libxcb-xinerama0 \
+        libx11-xcb1 \
+        libsm6 \
+        libice6 \
+        libxrender1 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
  
@@ -40,6 +57,7 @@ RUN pip install --no-cache-dir \
         "scipy" \
         "matplotlib" \
         "scikit-learn" \
+        "PyQt5" \
         mne \
         mne-bids \
         mne-bids-pipeline==1.10.1 \
