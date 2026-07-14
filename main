@@ -23,12 +23,9 @@ export SINGULARITYENV_VECLIB_MAXIMUM_THREADS=4
 
 # Force PyVista/VTK to use a virtual GPU
  
-export SINGULARITYENV_QT_QPA_PLATFORM="offscreen"
 export SINGULARITYENV_PYVISTA_OFF_SCREEN="true"
 export SINGULARITYENV_MPLBACKEND="Agg"
- 
-export SINGULARITYENV_DISPLAY=":99"
-export SINGULARITYENV_QT_QPA_PLATFORM="offscreen"
+export SINGULARITYENV_VTK_DEFAULT_OPENGL_WINDOW="vtkOSOpenGLRenderWindow"
  
 # Own image (uploaded to GitHub)
-singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids@sha256:4c8c305c927b9b876b2d6216af0c70cd4de2d6f330d58755007dbfe9d14fb4a5 xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24" python3 main.py
+singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids@sha256:4c8c305c927b9b876b2d6216af0c70cd4de2d6f330d58755007dbfe9d14fb4a5 python3 main.py
