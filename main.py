@@ -6,64 +6,69 @@
 
 # 03/07/2026
 
-# Set up enviroment
+# Set up environment
 
 import json
 from pathlib import Path
 import subprocess
 import os 
-
-# hay que fijarlas antes de importar pyvista/mne.viz
-os.environ['PYVISTA_OFF_SCREEN'] = 'true'
-os.environ['MPLBACKEND'] = 'Agg'
-os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'
-os.environ['VTK_DEFAULT_OPENGL_WINDOW'] = 'vtkOSOpenGLRenderWindow'
-
-# Desactivamos el backend 3D interactivo para evitar que VTK busque una ventana física
-os.environ['MNE_3D_BACKEND'] = 'pyvista'
-
 from shutil import copyfile, rmtree, copytree, copy
-import mne
-import mne_bids
-from mne.viz import set_3d_backend
-import vkt
 import logging
-
-# Saber cuales son las versiones
-logger.info(f"MNE version: {mne.__version__}")
-logger.info(f"PyVista version: {pyvista.__version__}")
-logger.info(f"VTK version: {vtk.vtkVersion().GetVTKVersion()}")
 
 # Logger configuration
 
 logging.basicConfig(level = logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-logger.info("version nueva: 2")
+logger.info("New version: 3")
+#  Find out the versions 
+logger.info(f"MNE version: {mne.__version__}")
+logger.info(f"PyVista version: {pyvista.__version__}")
+logger.info(f"VTK version: {vtk.vtkVersion().GetVTKVersion()}")
 
-# GENERACIÓN DE FIGURAS 3D
+# Configure PyVista so it never attempts to open a window, the plotter is created in “off-screen” mode.
+os.environ['PYVISTA_OFF_SCREEN'] = 'true'
+# Configure Matplot to use the Agg backend (without a GUI)
+os.environ['MPLBACKEND'] = 'Agg'
+# Disable anti-aliasing in MNE's 3D rendering 
+os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'
+# VTK: Which OpenGL window implementation should be used by default
+os.environ['VTK_DEFAULT_OPENGL_WINDOW'] = 'vtkOSOpenGLRenderWindow'
+# 3D backend that MNE will use by default
+os.environ['MNE_3D_BACKEND'] = 'pyvista'
+
+# Set up environment
+import mne
+import mne_bids
+from mne.viz import set_3d_backend
+import vtk
+import pyvista as pv
+pv.OFF_SCREEN = True
+
+# 3D IMAGE GENERATION
 def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_report_dir, subject):
-    # Genera figuras 3D interactivas. 
-    # Devuelve una lista de tuplas (etiqueta, nombre_de_fichero) con lo que se generó correctamente.
-    import pyvista as pv
-    pv.OFF_SCREEN = True
+    # Returns a list of (visible_label, html_filename) only those that were successfully generated.
+    # sets the MNE 3D backend right before drawing
     set_3d_backend("pyvista")
     
-    # directorio de las figuras intercativas
+    # Folder named 'interactive_3d' inside the report directory
     interactive_dir = html_report_dir / 'interactive_3d'
     interactive_dir.mkdir(parents=True, exist_ok=True)
     
-    # inicialización de la lista
+    # Initialization of the list to be returned
     generated = []
-    # coregistro y superficies BEM
+    # 1. Co-registration and BEM surfaces
     try:
+        # Search recursively within deriv_root for the files 
         trans_candidates = sorted(deriv_root.rglob(f"sub-{subject}*trans.fif"))
         info_candidates = sorted(deriv_root.rglob(f"sub-{subject}*raw.fif")) or sorted(deriv_root.rglob(f"sub-{subject}*epo.fif"))
         if not trans_candidates or not info_candidates:
             logger.warning("No trans.fif/raw.fif files detected")
         else:
+            # If there are candidates, take the first one from info_candidates
             info = mne.io.read_info(str(info_candidates[0]))
             try:
+                # Generate the co-registered 3D image
                 fig = mne.viz.plot_alignment(
                     info=info,
                     trans=str(trans_candidates[0]),
@@ -72,9 +77,10 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                     surfaces=['head-dense', 'inner_skull', 'outer_skull'],
                     coord_frame='mri',
                     show_axes=True,
+                    show = False,
                 )
             except Exception:
-                # si no existen superficies BEM
+                # If there are no BEM surfaces, try with a simpler version, showing only the surface of the head 
                 fig = mne.viz.plot_alignment(
                     info=info,
                     trans=str(trans_candidates[0]),
@@ -86,25 +92,32 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                     show = False,
                 )
             out_path = interactive_dir / f'sub-{subject}_coreg_bem.html'
+            # Static screenshot of the 3D figure
             fig.plotter.screenshot(interactive_dir / "alignment.png")
             try:
-                fig.plotter.export_html("alignment.html")
+                # Export the scene to interactive HTML
+                fig.plotter.export_html(interactive_dir/"alignment.html")
                 fig.plotter.export_html(str(out_path))
             except Exception as err:
                 logger.warning(err)
             fig.plotter.close()
-            generated.append(('Coregistracion y superficies BEM', out_path.name))
-            logger.info(f"Figura interactiva de coregistro/BEM guardada en {out_path}")
+            # Record the readable label and the file name in the list of results 
+            generated.append(('Co-registration and BEM surfaces', out_path.name))
+            logger.info(f"Interactive figure saved in {out_path}")
     except Exception as e:
-        logger.warning(f"No se pudo generar la figura interactiva de coregistro/BEM: {e}")
-    # ESTIMACION DE FUENTES 
+        logger.warning(f"The interactive figure could not be generated: {e}")
+        
+    # 2. Source estimate
     try:
+        # Search for source estimation files in .stc format
         stc_candidates = sorted(deriv_root.rglob(f"sub-{subject}*-lh.stc"))
         if not stc_candidates:
-            logger.warning("No se encontro ningun fichero -lh.stc; se omite la figura de fuente")
+            logger.warning("No -lh.stc file detected")
         else:
+            # Take the first candidate and remove the suffix -lh.stc
             stc_stem = str(stc_candidates[0])[:-len('-lh.stc')]
             stc = mne.read_source_estimate(stc_stem)
+            # Draw the 3D brain using the overlay activity
             brain = stc.plot(
                 subject=fs_subject,
                 subjects_dir=str(subjects_dir),
@@ -115,27 +128,29 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                 show=False,
             )
             out_path = interactive_dir / f'sub-{subject}_source_estimate.html'
+            # Static screenshot of the 3D figure
             brain.save_image(interactive_dir/"source.png")
             try:
-                brain.plotter.export_html("brain.html")
+                # Export the scene to interactive HTML
+                brain.plotter.export_html(interactive_dir/"brain.html")
                 brain.plotter.export_html(str(out_path))
             except Exception as err:
                 logger.warning(err)
             brain.close()
-            generated.append(('Estimacion de fuente', out_path.name))
-            logger.info(f"Figura interactiva de la estimacion de fuente guardada en {out_path}")
+            # Record the readable label and the file name in the list of results 
+            generated.append(('Source estimate', out_path.name))
+            logger.info(f"Source estimate figure saved in {out_path}")
     except Exception as e:
-        logger.warning(f"No se pudo generar la figura interactiva de la estimacion de fuente: {e}")          
+        logger.warning(f"The interactive figure could not be generated: {e}")          
 
-    # indice para todas las figuras
+    # 3. HTML index
     if generated:
         index_path = interactive_dir / 'index.html'
         with open(index_path, 'w', encoding='utf-8') as idx:
             idx.write("<html><head><meta charset='utf-8'>"
-                       "<title>Visualizaciones 3D interactivas</title></head><body>")
-            idx.write(f"<h1>Sub-{subject}: visualizaciones 3D interactivas</h1>")
-            idx.write("<p>Arrastra con el boton izquierdo para rotar, "
-                       "rueda del raton para zoom.</p>")
+                       "<title></title>Interactive 3D Visualizations</head><body>")
+            idx.write(f"<h1>Sub-{subject}: Interactive 3D Visualizations</h1>")
+            idx.write("<p>Drag with the left mouse button to rotate and scroll the mouse wheel to zoom</p>")
             for label, filename in generated:
                 idx.write(f"<h2>{label}</h2>")
                 idx.write(f"<iframe src='{filename}' width='100%' height='700' "
