@@ -10,6 +10,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     MNE_3D_OPTION_ANTIALIAS=false \
     VTK_DEFAULT_OPENGL_WINDOW=vtkOSOpenGLRenderWindow \
     LIBGL_ALWAYS_SOFTWARE=1 \
+    MNE_3D_BACKEND=pyvista \
     OMP_NUM_THREADS=1 \
     OPENBLAS_NUM_THREADS=1 \
     MKL_NUM_THREADS=1 \
@@ -58,8 +59,11 @@ RUN pip install --no-cache-dir \
         "matplotlib" \
         "scikit-learn" \
         "PyQt5" \
-        "pyvista" \
-        "pyvistaqt" \
+        pyvista==0.46.3 \
+        vtk==9.3.* \
+        trame \
+        trame-vtk \
+        trame-vuetify \
         mne \
         mne-bids \
         mne-bids-pipeline==1.10.1 \
