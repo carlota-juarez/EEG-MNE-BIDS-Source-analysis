@@ -31,4 +31,4 @@ export SINGULARITYENV_DISPLAY=":99"
 export SINGULARITYENV_QT_QPA_PLATFORM="offscreen"
  
 # Own image (uploaded to GitHub)
-singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids@sha256:a8ea18ec095829ffe10235d6cabd7e3155379d32b4bb4fc1f5174de69031c863 xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24" python3 main.py
+singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids@sha256:e0ded4119338ec1c85413de61e5b3f0fcde08c6a10024e4a5a539ba73fd2a9f3 xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24" python3 main.py
