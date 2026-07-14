@@ -60,6 +60,7 @@ RUN pip install --no-cache-dir \
         "scikit-learn" \
         "PyQt5" \
         pyvista==0.46.3 \
+        pyvistaqt \
         vtk==9.3.* \
         trame \
         trame-vtk \
