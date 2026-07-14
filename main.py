@@ -21,10 +21,6 @@ logging.basicConfig(level = logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 logger.info("New version: 3")
-#  Find out the versions 
-logger.info(f"MNE version: {mne.__version__}")
-logger.info(f"PyVista version: {pyvista.__version__}")
-logger.info(f"VTK version: {vtk.vtkVersion().GetVTKVersion()}")
 
 # Configure PyVista so it never attempts to open a window, the plotter is created in “off-screen” mode.
 os.environ['PYVISTA_OFF_SCREEN'] = 'true'
@@ -44,6 +40,11 @@ from mne.viz import set_3d_backend
 import vtk
 import pyvista as pv
 pv.OFF_SCREEN = True
+
+#  Find out the versions 
+logger.info(f"MNE version: {mne.__version__}")
+logger.info(f"PyVista version: {pv.__version__}")
+logger.info(f"VTK version: {vtk.vtkVersion().GetVTKVersion()}")
 
 # 3D IMAGE GENERATION
 def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_report_dir, subject):
