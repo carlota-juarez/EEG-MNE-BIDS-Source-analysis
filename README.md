@@ -40,3 +40,7 @@ Because recon-all and source modeling are computationally demanding, this App re
 # Funding
 
 This App was developed at the Neuroimaging Group, Cajal Neuroscience Center, CSIC  
+
+# Acknowledgements
+
+The application avatar is adapted from the MNE-Python hexagonal logo, licensed under CC BY 4.0.
