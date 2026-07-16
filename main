@@ -29,4 +29,4 @@ export SINGULARITYENV_MPLBACKEND="Agg"
 export SINGULARITYENV_VTK_DEFAULT_OPENGL_WINDOW="vtkOSOpenGLRenderWindow"
  
 # Own image (uploaded to GitHub)
-singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids@sha256:fa2bf5044287921a81ee9d94c1241dc8eae40fd63bfa67d6de129857e936dcb7 python3 main.py
+singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids@sha256:e2a3e25a559459faca2860e9a9a38b43c65ec04e1397b29f3e5197eaa582e769 python3 main.py
