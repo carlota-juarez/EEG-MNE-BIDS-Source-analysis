@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write   #imprescindible para poder publicar en ghcr.io
+      packages: write   # Required in order to publish on ghcr.io
 
     steps:
       - name: Checkout repo
@@ -21,7 +21,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      # configura buildx para usar chaché
+      # Configure buildx to use the cache
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -32,20 +32,20 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/carlota-juarez/app-mne-bids:full
-          # para reutilizar capas no modificadas entre ejecuciones
+          # to reuse unmodified layers across runs
           cache-from: type=gha
           cache-to: type=gha,mode=max
-        # me permite usar el digest de la imagen para referenciarlo desde el main (push automatico del main)
-      - name: Update main.txt with new image digest
+        # Use the image's digest to reference it from the main (automatic push from the main)
+      - name: Update main with new image digest
         run: |
           IMAGE_REF="ghcr.io/carlota-juarez/app-mne-bids@${{ steps.build.outputs.digest }}"
           sed -i -E "s#docker://ghcr\.io/carlota-juarez/app-mne-bids(@sha256:[a-f0-9]+|:full)#docker://${IMAGE_REF}#" main
-          grep -q "$IMAGE_REF" main && echo "main actualizado correctamente" || (echo "ERROR: main.txt no se actualizó" && exit 1)
+          grep -q "$IMAGE_REF" main && echo "main updated correctly" || (echo "ERROR: main not updated" && exit 1)
 
       - name: Commit updated main
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "carlota-juarez"
+          git config user.email "carlota.juarez@alumnos.upm.es"
           git add main
-          git diff --staged --quiet || git commit -m "chore: pin image digest to latest build [skip ci]"
+          git diff --staged --quiet || git commit -m "build: auto-update image SHA digest [skip ci]"
           git push
