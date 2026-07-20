@@ -41,6 +41,8 @@ from mne.viz import set_3d_backend
 import vtk
 import pyvista as pv
 pv.OFF_SCREEN = True
+import nest_asyncio
+nest_asyncio.apply()
 
 if not os.environ.get('DISPLAY'):
     pv.start_xvfb(wait=3)
@@ -245,6 +247,8 @@ with open(file_name, 'w') as f:
     f.write("os.environ['VTK_DEFAULT_OPENGL_WINDOW'] = 'vtkOSOpenGLRenderWindow'\n\n")
     f.write("import pyvista\n")
     f.write("pyvista.OFF_SCREEN = True\n")
+    f.write("import nest_asyncio\n")
+    f.write("nest_asyncio.apply()\n")
     f.write("import mne\n")
     f.write("mne.viz.set_3d_backend('pyvistaqt')\n\n")
     # ---------------------------------------------------------------------------------------------

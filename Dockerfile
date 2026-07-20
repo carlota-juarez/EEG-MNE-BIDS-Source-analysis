@@ -60,6 +60,7 @@ RUN pip install --no-cache-dir \
         "PyQt5" \
         pyvista==0.46.3 \
         pyvistaqt==0.11.3 \
+        nest_asyncio \
         ipyevents \
         ipywidgets \
         trame \
