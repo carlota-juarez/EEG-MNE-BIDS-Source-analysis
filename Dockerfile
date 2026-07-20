@@ -6,11 +6,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     MNE_BROWSER_BACKEND=matplotlib \
     MPLBACKEND=Agg \
     PYVISTA_OFF_SCREEN=true \
-    QT_QPA_PLATFORM=offscreen \
     MNE_3D_OPTION_ANTIALIAS=false \
     VTK_DEFAULT_OPENGL_WINDOW=vtkOSOpenGLRenderWindow \
     LIBGL_ALWAYS_SOFTWARE=1 \
-    MNE_3D_BACKEND=notebook \
+    MNE_3D_BACKEND=pyvistaqt \
     OMP_NUM_THREADS=1 \
     OPENBLAS_NUM_THREADS=1 \
     MKL_NUM_THREADS=1 \
@@ -18,6 +17,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     VECLIB_MAXIMUM_THREADS=1
  
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        xvfb \
         git \
         libgl1 \
         libgl1-mesa-dri \
