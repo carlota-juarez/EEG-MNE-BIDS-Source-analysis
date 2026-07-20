@@ -117,12 +117,13 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                 # Export the scene to interactive HTML
                 fig.plotter.export_html(str(out_path))
                 generated.append(('Co-registration and BEM surfaces', out_path.name))
+                logger.info(f"Interactive figure saved in {out_path}")
             except Exception as err:
                 logger.warning(err)
                 generated.append(('Co-registration and BEM surfaces (Estático)', png_path.name))
+                logger.info(f"Static figure saved in {png_path}")
             fig.plotter.close()
             # Record the readable label and the file name in the list of results 
-            logger.info(f"Interactive figure saved in {out_path}")
     except Exception as e:
         logger.warning(f"The interactive figure could not be generated: {e}")
         
@@ -150,7 +151,6 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                 backend='pyvistaqt',
                 time_viewer=False,
                 show_traces=False,
-                show=False,
             )
             png_path = interactive_dir / f'sub-{subject}_source_estimate.png'
             # Static screenshot of the 3D figure
@@ -161,12 +161,13 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                 # Export the scene to interactive HTML
                 brain.plotter.export_html(str(out_path))
                 generated.append(('Source estimate', out_path.name))
+                logger.info(f"Source estimate figure saved in {out_path}")
             except Exception as err:
                 logger.warning(err)
                 generated.append(('Source estimate (Estático)', png_path.name))
+                logger.info(f"Static source estimate figure saved in {png_path}")
             brain.close()
             # Record the readable label and the file name in the list of results 
-            logger.info(f"Source estimate figure saved in {out_path}")
     except Exception as e:
         logger.warning(f"The interactive figure could not be generated: {e}")          
 
