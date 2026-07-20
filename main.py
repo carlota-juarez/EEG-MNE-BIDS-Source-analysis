@@ -42,9 +42,6 @@ import vtk
 import pyvista as pv
 pv.OFF_SCREEN = True
 
-if not os.environ.get('DISPLAY'):
-    pv.start_xvfb()
-
 #  Find out the versions 
 logger.info(f"MNE version: {mne.__version__}")
 logger.info(f"PyVista version: {pv.__version__}")

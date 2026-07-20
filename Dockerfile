@@ -6,8 +6,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     MNE_BROWSER_BACKEND=matplotlib \
     MPLBACKEND=Agg \
     PYVISTA_OFF_SCREEN=true \
+    QT_QPA_PLATFORM=offscreen \
     MNE_3D_OPTION_ANTIALIAS=false \
-    VTK_DEFAULT_OPENGL_WINDOW=vtkOSOpenGLRenderWindow \
     LIBGL_ALWAYS_SOFTWARE=1 \
     MNE_3D_BACKEND=pyvistaqt \
     OMP_NUM_THREADS=1 \
@@ -61,13 +61,14 @@ RUN pip install --no-cache-dir \
         "PyQt5" \
         pyvista==0.46.3 \
         pyvistaqt==0.11.3 \
-        vtk==9.3.* \
         trame \
         trame-vtk \
         trame-vuetify \
         mne \
         mne-bids \
         mne-bids-pipeline==1.10.1 \
+    && pip uninstall -y vtk \
+    && pip install --no-cache-dir --extra-index-url https://wheels.vtk.org vtk-osmesa \
     && find /usr/local/lib/python3.11 -type d -name "__pycache__" -exec rm -rf {} + \
     && find /usr/local/lib/python3.11 -type d \( -name "tests" -o -name "test" \) -exec rm -rf {} + \
     && rm -rf /root/.cache /tmp/*
