@@ -92,7 +92,6 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                     surfaces=['head-dense', 'inner_skull', 'outer_skull'],
                     coord_frame='mri',
                     show_axes=True,
-                    show = False,
                 )
             except Exception:
                 # If there are no BEM surfaces, try with a simpler version, showing only the surface of the head 
@@ -104,7 +103,6 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                     surfaces=['head'],
                     coord_frame='mri',
                     show_axes=True,
-                    show = False,
                 )
             out_path = interactive_dir / f'sub-{subject}_coreg_bem.html'
             # Static screenshot of the 3D figure
@@ -126,6 +124,14 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
     try:
         # Search for source estimation files in .stc format
         stc_candidates = sorted(deriv_root.rglob(f"sub-{subject}*-lh.stc"))
+        stc_subject = fs_subject
+        stc_subjects_dir = subjects_dir
+        if not stc_candidates:
+            logger.info(f"No sub-{subject}*-lh.stc found, falling back to sub-average (fsaverage)")
+            stc_candidates = sorted(deriv_root.rglob("sub-average*-lh.stc"))
+            stc_subject = 'fsaverage'
+        if not stc_candidates:
+            stc_candidates = sorted(deriv_root.rglob("*-lh.stc"))
         if not stc_candidates:
             logger.warning("No -lh.stc file detected")
         else:
