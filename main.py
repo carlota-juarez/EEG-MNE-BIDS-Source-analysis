@@ -76,7 +76,12 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
     try:
         # Search recursively within deriv_root for the files 
         trans_candidates = sorted(deriv_root.rglob(f"sub-{subject}*trans.fif"))
-        info_candidates = sorted(deriv_root.rglob(f"sub-{subject}*raw.fif")) or sorted(deriv_root.rglob(f"sub-{subject}*epo.fif"))
+        info_candidates = (
+            sorted(deriv_root.rglob(f"sub-{subject}*_proc-clean_raw.fif")) or 
+            sorted(deriv_root.rglob(f"sub-{subject}*raw.fif")) or 
+            sorted(deriv_root.rglob(f"sub-{subject}*epo.fif")) or
+            sorted(deriv_root.rglob(f"sub-{subject}*ave.fif"))
+        )
         if not trans_candidates or not info_candidates:
             logger.warning("No trans.fif/raw.fif files detected")
         else:
@@ -104,18 +109,19 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                     coord_frame='mri',
                     show_axes=True,
                 )
-            out_path = interactive_dir / f'sub-{subject}_coreg_bem.html'
+            png_path = interactive_dir / f'sub-{subject}_coreg_bem.png'
             # Static screenshot of the 3D figure
-            fig.plotter.screenshot(interactive_dir / "alignment.png")
+            fig.plotter.screenshot(str(png_path))
+            out_path = interactive_dir / f'sub-{subject}_coreg_bem.html'
             try:
                 # Export the scene to interactive HTML
-                fig.plotter.export_html(interactive_dir/"alignment.html")
                 fig.plotter.export_html(str(out_path))
+                generated.append(('Co-registration and BEM surfaces', out_path.name))
             except Exception as err:
                 logger.warning(err)
+                generated.append(('Co-registration and BEM surfaces (Estático)', png_path.name))
             fig.plotter.close()
             # Record the readable label and the file name in the list of results 
-            generated.append(('Co-registration and BEM surfaces', out_path.name))
             logger.info(f"Interactive figure saved in {out_path}")
     except Exception as e:
         logger.warning(f"The interactive figure could not be generated: {e}")
@@ -123,21 +129,19 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
     # 2. Source estimate
     try:
         # Search for source estimation files in .stc format
-        stc_candidates = sorted(deriv_root.rglob(f"sub-{subject}*-lh.stc"))
+        stc_candidates = sorted(deriv_root.rglob(f"sub-{subject}*+hemi.h5")) or \
+                         sorted(deriv_root.rglob(f"sub-{subject}*-lh.stc"))
         stc_subject = fs_subject
         stc_subjects_dir = subjects_dir
         if not stc_candidates:
-            logger.info(f"No sub-{subject}*-lh.stc found, falling back to sub-average (fsaverage)")
-            stc_candidates = sorted(deriv_root.rglob("sub-average*-lh.stc"))
-            stc_subject = 'fsaverage'
-        if not stc_candidates:
-            stc_candidates = sorted(deriv_root.rglob("*-lh.stc"))
-        if not stc_candidates:
-            logger.warning("No -lh.stc file detected")
+            logger.warning("No source estimate file (.h5 or .stc) detected")
+            stc_candidates = sorted(deriv_root.rglob("*+hemi.h5")) or sorted(deriv_root.rglob("*-lh.stc"))
         else:
             # Take the first candidate and remove the suffix -lh.stc
-            stc_stem = str(stc_candidates[0])[:-len('-lh.stc')]
-            stc = mne.read_source_estimate(stc_stem)
+            stc_file = str(stc_candidates[0])
+            if stc_file.endswith('-lh.stc'):
+                stc_file = stc_file[:-len('-lh.stc')]
+            stc = mne.read_source_estimate(stc_file)
             # Draw the 3D brain using the overlay activity
             brain = stc.plot(
                 subject=fs_subject,
@@ -148,18 +152,20 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                 show_traces=False,
                 show=False,
             )
-            out_path = interactive_dir / f'sub-{subject}_source_estimate.html'
+            png_path = interactive_dir / f'sub-{subject}_source_estimate.png'
             # Static screenshot of the 3D figure
-            brain.save_image(interactive_dir/"source.png")
+            brain.save_image(str(png_path))
+
+            out_path = interactive_dir / f'sub-{subject}_source_estimate.html'
             try:
                 # Export the scene to interactive HTML
-                brain.plotter.export_html(interactive_dir/"brain.html")
                 brain.plotter.export_html(str(out_path))
+                generated.append(('Source estimate', out_path.name))
             except Exception as err:
                 logger.warning(err)
+                generated.append(('Source estimate (Estático)', png_path.name))
             brain.close()
             # Record the readable label and the file name in the list of results 
-            generated.append(('Source estimate', out_path.name))
             logger.info(f"Source estimate figure saved in {out_path}")
     except Exception as e:
         logger.warning(f"The interactive figure could not be generated: {e}")          
