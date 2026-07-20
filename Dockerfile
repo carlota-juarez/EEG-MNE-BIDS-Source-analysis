@@ -6,10 +6,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     MNE_BROWSER_BACKEND=matplotlib \
     MPLBACKEND=Agg \
     PYVISTA_OFF_SCREEN=true \
-    QT_QPA_PLATFORM=offscreen \
     MNE_3D_OPTION_ANTIALIAS=false \
     LIBGL_ALWAYS_SOFTWARE=1 \
-    MNE_3D_BACKEND=pyvistaqt \
+    MNE_3D_BACKEND=notebook \
     OMP_NUM_THREADS=1 \
     OPENBLAS_NUM_THREADS=1 \
     MKL_NUM_THREADS=1 \
@@ -58,9 +57,9 @@ RUN pip install --no-cache-dir \
         "scipy" \
         "matplotlib" \
         "scikit-learn" \
-        "PyQt5" \
         pyvista==0.46.3 \
-        pyvistaqt==0.11.3 \
+        ipyevents \
+        ipywidgets \
         trame \
         trame-vtk \
         trame-vuetify \

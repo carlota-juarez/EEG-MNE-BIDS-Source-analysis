@@ -32,7 +32,7 @@ os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'
 # VTK: Which OpenGL window implementation should be used by default
 os.environ['VTK_DEFAULT_OPENGL_WINDOW'] = 'vtkOSOpenGLRenderWindow'
 # 3D backend that MNE will use by default
-os.environ['MNE_3D_BACKEND'] = 'pyvistaqt'
+os.environ['MNE_3D_BACKEND'] = 'notebook'
 
 # Set up environment
 import mne
@@ -51,7 +51,7 @@ logger.info(f"VTK version: {vtk.vtkVersion().GetVTKVersion()}")
 def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_report_dir, subject):
     # Returns a list of (visible_label, html_filename) only those that were successfully generated.
     # sets the MNE 3D backend right before drawing
-    set_3d_backend("pyvistaqt")
+    set_3d_backend("notebook")
     
     # Folder named 'interactive_3d' inside the report directory
     interactive_dir = html_report_dir / 'interactive_3d'
@@ -124,7 +124,7 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                 subject=fs_subject,
                 subjects_dir=str(subjects_dir),
                 hemi='both',
-                backend='pyvistaqt',
+                backend='notebook',
                 time_viewer=False,
                 show_traces=False,
                 show=False,
@@ -220,7 +220,7 @@ with open(file_name, 'w') as f:
     f.write("import pyvista\n")
     f.write("pyvista.OFF_SCREEN = True\n")
     f.write("import mne\n")
-    f.write("mne.viz.set_3d_backend('pyvistaqt')\n\n")
+    f.write("mne.viz.set_3d_backend('notebook')\n\n")
     # ---------------------------------------------------------------------------------------------
 
     f.write(f"bids_root = '{bids_root_path}'\n")
