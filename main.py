@@ -177,7 +177,7 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
     except Exception as e:
         logger.warning(f"The interactive figure could not be generated: {e}")          
 
-    # 3D INTERACTIVE MODEL 
+    # 3D INTERACTIVE MODEL (static anatomy)
 
     # Create a 3D view of the cerebral cortex using MNE and Three.js
     try:
@@ -293,6 +293,143 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
 
     except Exception as e:
         logger.warning(f"The 3D surface could not be generated: {e}")
+
+    # 3D INTERACTIVE MODEL (temporal animation)
+    try:
+        stc_candidates = sorted(deriv_root.rglob(f"sub-{subject}*+hemi.h5")) or \
+                         sorted(deriv_root.rglob(f"sub-{subject}*-lh.stc"))
+        if stc_candidates:
+            stc_file = str(stc_candidates[0])
+            if stc_file.endswith('-lh.stc'):
+                stc_file = stc_file[:-len('-lh.stc')]
+            stc = mne.read_source_estimate(stc_file)
+
+            subj_path = Path(subjects_dir) / fs_subject / 'surf'
+            vertices_list, faces_list = [], []
+            vertex_offset = 0
+            for surf_path in [subj_path / 'lh.pial', subj_path / 'rh.pial']:
+                if surf_path.exists():
+                    coords, faces = mne.read_surface(str(surf_path))
+                    vertices_list.append(coords)
+                    faces_list.append(faces + vertex_offset)
+                    vertex_offset += len(coords)
+
+            if vertices_list:
+                all_vertices = np.vstack(vertices_list).flatten().tolist()
+                all_faces = np.vstack(faces_list).flatten().tolist()
+                
+                # stc.data contiene la matriz [n_sources x n_times]
+                time_data = stc.data.T.tolist()
+                times = stc.times.tolist()
+
+                html_time_content = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Actividad Temporal - Sub-{subject}</title>
+    <style>
+        body {{ margin: 0; overflow: hidden; background-color: #111; font-family: sans-serif; }}
+        #ui {{
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); padding: 15px 25px; border-radius: 10px; color: white;
+            text-align: center; width: 60%; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }}
+        #time-slider {{ width: 100%; margin-top: 10px; cursor: pointer; }}
+        #info {{ position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px; pointer-events: none; }}
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="info"><b>Estimación de Fuentes en el Tiempo</b><br>Visualizando activación dinámica</div>
+    <div id="ui">
+        <div>Tiempo: <span id="time-display">{times[0]:.3f}</span> s</div>
+        <input type="range" id="time-slider" min="0" max="{len(times)-1}" value="0" step="1">
+    </div>
+    <script>
+        const vertices = new Float32Array({json.dumps(all_vertices)});
+        const indices = new Uint32Array({json.dumps(all_faces)});
+        const timeData = {json.dumps(time_data)};
+        const times = {json.dumps(times)};
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111116);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, -200, 50);
+
+        const renderer = new THREE.WebGLRenderer({{ antialias: true }});
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+        geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+        geometry.computeVertexNormals();
+        geometry.center();
+
+        const colors = new Float32Array(vertices.length);
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        const material = new THREE.MeshPhongMaterial({{
+            vertexColors: true, side: THREE.DoubleSide, shininess: 20
+        }});
+
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        scene.add(new THREE.AmbientLight(0x888888));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(1, 1, 1).normalize();
+        scene.add(dirLight);
+
+        function updateBrainColors(frameIndex) {{
+            const activations = timeData[frameIndex];
+            const colorAttr = geometry.getAttribute('color');
+            
+            for (let i = 0; i < activations.length; i++) {{
+                let val = activations[i] || 0;
+                let r = val > 0 ? Math.min(1, val * 5) : 0;
+                let b = val < 0 ? Math.min(1, -val * 5) : 0;
+                let g = 0.1;
+                colorAttr.setXYZ(i, r, g, b);
+            }}
+            colorAttr.needsUpdate = true;
+            document.getElementById('time-display').innerText = times[frameIndex].toFixed(3);
+        }}
+
+        updateBrainColors(0);
+
+        const slider = document.getElementById('time-slider');
+        slider.addEventListener('input', (e) => {{
+            updateBrainColors(parseInt(e.target.value));
+        }});
+
+        function animate() {{
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }}
+        animate();
+
+        window.addEventListener('resize', () => {{
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }});
+    </script>
+</body>
+</html>"""
+
+                time_html_path = interactive_dir / f'sub-{subject}_source_animation.html'
+                time_html_path.write_text(html_time_content, encoding='utf-8')
+                generated.append(('Actividad Neuronal Interactiva en el Tiempo', time_html_path.name, 'iframe'))
+                logger.info(f"Temporal source animation generated in {time_html_path}")
+    except Exception as e:
+        logger.warning(f"The temporal interactive source animation could not be generated: {e}")
 
     # HTML index
     if generated:
