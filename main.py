@@ -386,12 +386,12 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
         const colors = new Float32Array(vertices.length);
         geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-        // Usamos DoubleSide y colores por vértice con brillo suave
+        // Material estándar equilibrado para mantener la volumetría cortical sin oscurecerse
         const material = new THREE.MeshStandardMaterial({{
             vertexColors: true, 
             side: THREE.DoubleSide, 
-            roughness: 0.4,
-            metalness: 0.1
+            roughness: 0.5,
+            metalness: 0.05
         }});
 
         const mesh = new THREE.Mesh(geometry, material);
@@ -402,7 +402,7 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
         dirLight.position.set(1, 1, 1).normalize();
         scene.add(dirLight);
 
-        // Función de transferencia de color estilo MNE (Gris base -> Amarillo -> Rojo intenso)
+        // Función de transferencia de color continua estilo MNE (Gris cortical base -> Amarillo -> Rojo)
         void function updateBrainColors(frameIndex) {{
             const activations = timeData[frameIndex];
             const colorAttr = geometry.getAttribute('color');
@@ -410,19 +410,20 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
 
             for (let i = 0; i < totalVertices; i++) {{
                 let val = (i < activations.length && activations[i] !== undefined) ? activations[i] : 0;
-                
-                // Normalización y umbral de actividad para imitar el mapa térmico de MNE
                 let intensity = Math.abs(val);
                 let r, g, b;
 
-                if (intensity < 0.05) {{
-                    // Fondo gris cortical estándar (como en FreeSurfer/MNE)
-                    r = 0.55; g = 0.55; b = 0.55;
+                // Color gris cortical base idéntico al modelo 3D estático
+                let baseR = 0.82, baseG = 0.83, baseB = 0.86;
+
+                if (intensity < 0.1) {{
+                    r = baseR;
+                    g = baseG;
+                    b = baseB;
                 }} else {{
-                    // Gradiente continuo: de amarillo/naranja a rojo vivo según intensidad
-                    let t = Math.min(1, intensity * 3); // Escala de sensibilidad
+                    let t = Math.min(1.0, (intensity - 0.1) * 4.0);
                     r = 1.0;
-                    g = Math.max(0, 1.0 - t); // Pasa de amarillo (1,1,0) a rojo (1,0,0)
+                    g = 1.0 - t; // Transición suave de amarillo a rojo
                     b = 0.0;
                 }}
 
