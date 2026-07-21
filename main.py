@@ -315,7 +315,11 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
             subj_path = Path(subjects_dir) / fs_subject / 'surf'
             vertices_list, faces_list = [], []
             vertex_offset = 0
-            for surf_path in [subj_path / 'lh.pial', subj_path / 'rh.pial']:
+            for surf_name in ['lh.inflated', 'rh.inflated']:
+                surf_path = subj_path / surf_name
+                if not surf_path.exists():
+                    surf_path = subj_path / surf_name.replace('inflated', 'pial') # fallback
+                
                 if surf_path.exists():
                     coords, faces = mne.read_surface(str(surf_path))
                     vertices_list.append(coords)
@@ -336,10 +340,10 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
     <meta charset="UTF-8">
     <title>Actividad Temporal - Sub-{subject}</title>
     <style>
-        body {{ margin: 0; overflow: hidden; background-color: #111; font-family: sans-serif; }}
+        body {{ margin: 0; overflow: hidden; background-color: #1a1a1a; font-family: sans-serif; }}
         #ui {{
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); padding: 15px 25px; border-radius: 10px; color: white;
+            background: rgba(0,0,0,0.85); padding: 15px 25px; border-radius: 10px; color: white;
             text-align: center; width: 60%; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }}
         #time-slider {{ width: 100%; margin-top: 10px; cursor: pointer; }}
@@ -349,7 +353,7 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-    <div id="info"><b>Estimación de Fuentes en el Tiempo</b><br>Visualizando activación dinámica</div>
+    <div id="info"><b>Estimating Sources Over Time</b><br>Visualizando activación dinámica continua</div>
     <div id="ui">
         <div>Tiempo: <span id="time-display">{times[0]:.3f}</span> s</div>
         <input type="range" id="time-slider" min="0" max="{len(times)-1}" value="0" step="1">
@@ -382,32 +386,46 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
         const colors = new Float32Array(vertices.length);
         geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-        const material = new THREE.MeshPhongMaterial({{
-            vertexColors: true, side: THREE.DoubleSide, shininess: 20
+        // Usamos DoubleSide y colores por vértice con brillo suave
+        const material = new THREE.MeshStandardMaterial({{
+            vertexColors: true, 
+            side: THREE.DoubleSide, 
+            roughness: 0.4,
+            metalness: 0.1
         }});
 
         const mesh = new THREE.Mesh(geometry, material);
         scene.add(mesh);
 
-        scene.add(new THREE.AmbientLight(0x888888));
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
         dirLight.position.set(1, 1, 1).normalize();
         scene.add(dirLight);
 
-        function updateBrainColors(frameIndex) {{
+        // Función de transferencia de color estilo MNE (Gris base -> Amarillo -> Rojo intenso)
+        void function updateBrainColors(frameIndex) {{
             const activations = timeData[frameIndex];
             const colorAttr = geometry.getAttribute('color');
-            
-            // Recorremos todos los vértices de la malla geométrica
             const totalVertices = vertices.length / 3;
+
             for (let i = 0; i < totalVertices; i++) {{
-                // Si el índice existe en activations lo usamos, si no, ponemos un gris base de fondo
-                let val = (i < activations.length) ? activations[i] : 0;
+                let val = (i < activations.length && activations[i] !== undefined) ? activations[i] : 0;
                 
-                let r = val > 0 ? Math.min(1, val * 5) : 0;
-                let b = val < 0 ? Math.min(1, -val * 5) : 0;
-                let g = (val === 0) ? 0.2 : 0.1; // Fondo grisáceo para que se vea la anatomía
-                
+                // Normalización y umbral de actividad para imitar el mapa térmico de MNE
+                let intensity = Math.abs(val);
+                let r, g, b;
+
+                if (intensity < 0.05) {{
+                    // Fondo gris cortical estándar (como en FreeSurfer/MNE)
+                    r = 0.55; g = 0.55; b = 0.55;
+                }} else {{
+                    // Gradiente continuo: de amarillo/naranja a rojo vivo según intensidad
+                    let t = Math.min(1, intensity * 3); // Escala de sensibilidad
+                    r = 1.0;
+                    g = Math.max(0, 1.0 - t); // Pasa de amarillo (1,1,0) a rojo (1,0,0)
+                    b = 0.0;
+                }}
+
                 colorAttr.setXYZ(i, r, g, b);
             }}
             colorAttr.needsUpdate = true;
@@ -439,7 +457,7 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
 
                 time_html_path = interactive_dir / f'sub-{subject}_source_animation.html'
                 time_html_path.write_text(html_time_content, encoding='utf-8')
-                generated.append(('Actividad Neuronal Interactiva en el Tiempo', time_html_path.name, 'iframe'))
+                generated.append(('Interactive Neural Activity Over Time', time_html_path.name, 'iframe'))
                 logger.info(f"Temporal source animation generated in {time_html_path}")
     except Exception as e:
         logger.warning(f"The temporal interactive source animation could not be generated: {e}")
