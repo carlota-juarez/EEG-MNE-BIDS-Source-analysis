@@ -21,7 +21,7 @@ import logging
 logging.basicConfig(level = logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-logger.info("New version: 3")
+logger.info("New version: 3 correct")
 
 # Configure PyVista so it never attempts to open a window, the plotter is created in “off-screen” mode.
 os.environ['PYVISTA_OFF_SCREEN'] = 'true'
@@ -52,6 +52,7 @@ logger.info(f"MNE version: {mne.__version__}")
 logger.info(f"PyVista version: {pv.__version__}")
 logger.info(f"VTK version: {vtk.vtkVersion().GetVTKVersion()}")
 
+# In headless environments using PyVista, VTK and Xvfb, 3D figures often fails due to OpenGL calls.
 def _safe_call(fn, retries=1, delay=2):
     for attempt in range(retries + 1):
         try:
@@ -61,7 +62,7 @@ def _safe_call(fn, retries=1, delay=2):
                 raise
             logger.warning(f"Retrying after transient rendering error (attempt {attempt + 1})")
             time.sleep(delay)
-
+'''
 # 3D IMAGE GENERATION
 def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_report_dir, subject):
     # Returns a list of (visible_label, html_filename) only those that were successfully generated.
@@ -188,6 +189,70 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
             idx.write("</body></html>")
  
     return generated
+'''
+
+
+def generate_true_3d_interactive_report(subjects_dir, fs_subject, deriv_root, html_report_dir, subject):
+    # Genera un reporte HTML verdaderamente interactivo utilizando mne.Report
+    set_3d_backend("pyvistaqt")
+    
+    interactive_dir = html_report_dir / 'interactive_3d'
+    interactive_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Creamos un informe independiente MNE
+    report = mne.Report(title=f"Reporte 3D Interactivo - Sujeto {subject}", verbose=True)
+
+    # 1. Añadir Alineación de Sensores y Co-registro 3D Interactivo
+    try:
+        trans_candidates = sorted(deriv_root.rglob(f"sub-{subject}*trans.fif"))
+        info_candidates = (
+            sorted(deriv_root.rglob(f"sub-{subject}*_proc-clean_raw.fif")) or 
+            sorted(deriv_root.rglob(f"sub-{subject}*raw.fif")) or 
+            sorted(deriv_root.rglob(f"sub-{subject}*epo.fif")) or
+            sorted(deriv_root.rglob(f"sub-{subject}*ave.fif"))
+        )
+        if trans_candidates and info_candidates:
+            info = mne.io.read_info(str(info_candidates[0]))
+            
+            logger.info("Generando visualización 3D de Co-registro...")
+            report.add_trans(
+                trans=str(trans_candidates[0]),
+                info=info,
+                subject=fs_subject,
+                subjects_dir=str(subjects_dir),
+                title="Co-registro 3D (BEM y Electrodos/Sensores)",
+                alpha=0.8
+            )
+    except Exception as e:
+        logger.warning(f"No se pudo añadir el co-registro 3D al reporte: {e}")
+
+    # 2. Añadir Reconstrucción de Fuentes 3D (STC) Interactiva
+    try:
+        stc_candidates = sorted(deriv_root.rglob(f"sub-{subject}*+hemi.h5")) or \
+                         sorted(deriv_root.rglob(f"sub-{subject}*-lh.stc"))
+        if stc_candidates:
+            stc_file = str(stc_candidates[0])
+            if stc_file.endswith('-lh.stc'):
+                stc_file = stc_file[:-len('-lh.stc')]
+            stc = mne.read_source_estimate(stc_file)
+            
+            logger.info("Generando visualización 3D de Estimación de Fuentes...")
+            report.add_stc(
+                stc=stc,
+                subject=fs_subject,
+                subjects_dir=str(subjects_dir),
+                title="Estimación de Fuentes 3D (Cortical Surface)",
+                n_time_points=5 # Genera muestras interactivas del tiempo
+            )
+    except Exception as e:
+        logger.warning(f"No se pudo añadir la estimación de fuentes 3D al reporte: {e}")
+
+    # Guardar el HTML interactivo compilado
+    output_html_path = interactive_dir / 'index.html'
+    report.save(str(output_html_path), overwrite=True, open_browser=False)
+    logger.info(f"Reporte 3D Interactivo generado exitosamente en: {output_html_path}")
+
+
 
 # Current path
 
