@@ -288,7 +288,7 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
 
             brain_html = interactive_dir / f'sub-{subject}_brain_3d.html'
             brain_html.write_text(html_content, encoding='utf-8')
-            generated.append(('Interactive 3D Brain Surface', brain_html.name))
+            generated.append(('Interactive 3D Brain Surface', brain_html.name, 'iframe'))
             logger.info(f"3D model generated in {brain_html}")
 
     except Exception as e:
