@@ -304,6 +304,9 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                 stc_file = stc_file[:-len('-lh.stc')]
             stc = mne.read_source_estimate(stc_file)
 
+            stc = stc.copy().decim(decim=8)
+
+
             subj_path = Path(subjects_dir) / fs_subject / 'surf'
             vertices_list, faces_list = [], []
             vertex_offset = 0
