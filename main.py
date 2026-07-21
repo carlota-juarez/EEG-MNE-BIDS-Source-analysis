@@ -252,47 +252,54 @@ def generate_true_3d_interactive_report(subjects_dir, fs_subject, deriv_root, ht
     report.save(str(output_html_path), overwrite=True, open_browser=False)
     logger.info(f"Reporte 3D Interactivo generado exitosamente en: {output_html_path}")
 
-import trimesh
-
 def export_3d_mesh_files(subjects_dir, fs_subject, html_report_dir):
     """
-    Lee las mallas corticales (FreeSurfer/MNE) y las guarda como archivos 3D reales (.gltf y .obj)
+    Lee las mallas corticales (FreeSurfer/MNE) y las exporta a formatos 3D reales 
+    usando PyVista (sin requerir trimesh).
     """
+    import numpy as np
+    import pyvista as pv
+
     models_dir = html_report_dir / 'models_3d'
     models_dir.mkdir(parents=True, exist_ok=True)
-    
+
     subj_path = Path(subjects_dir) / fs_subject / 'surf'
     lh_pial = subj_path / 'lh.pial'
     rh_pial = subj_path / 'rh.pial'
-    
-    meshes_to_combine = []
-    
-    # Cargar hemisferio izquierdo
-    if lh_pial.exists():
-        coords_l, faces_l = mne.read_surface(str(lh_pial))
-        meshes_to_combine.append(trimesh.Trimesh(vertices=coords_l, faces=faces_l))
-        
-    # Cargar hemisferio derecho
-    if rh_pial.exists():
-        coords_r, faces_r = mne.read_surface(str(rh_pial))
-        meshes_to_combine.append(trimesh.Trimesh(vertices=coords_r, faces=faces_r))
-        
-    if meshes_to_combine:
-        # Unir ambos hemisferios en una sola estructura 3D
-        combined_brain = trimesh.util.concatenate(meshes_to_combine)
-        
-        # Exportar a formato GLTF (estándar WebGL / 3D)
-        gltf_path = models_dir / f"{fs_subject}_brain_3d.gltf"
-        combined_brain.export(str(gltf_path))
-        logger.info(f"Modelo 3D exportado con éxito en: {gltf_path}")
 
-        # Exportar a formato OBJ (compatibilidad universal)
-        obj_path = models_dir / f"{fs_subject}_brain_3d.obj"
-        combined_brain.export(str(obj_path))
-        logger.info(f"Modelo 3D exportado con éxito en: {obj_path}")
+    pyvista_meshes = []
+
+    # 1. Leer e instanciar mallas con MNE y PyVista
+    for surf_path in [lh_pial, rh_pial]:
+        if surf_path.exists():
+            coords, faces = mne.read_surface(str(surf_path))
+            # PyVista requiere que la matriz de caras tenga el número de vértices (3 para triángulos) al inicio de cada fila
+            faces_pv = np.hstack(np.c_[np.full(len(faces), 3), faces])
+            mesh = pv.PolyData(coords, faces_pv)
+            pyvista_meshes.append(mesh)
+
+    if pyvista_meshes:
+        # 2. Combinar hemisferios en un solo objeto 3D
+        combined_brain = pyvista_meshes[0]
+        if len(pyvista_meshes) > 1:
+            combined_brain = combined_brain.merge(pyvista_meshes[1:])
+
+        # 3. Guardar archivos 3D compatibles
+        # Formato PLY (estándar 3D universal compatible con Windows, Mac, Blender, MeshLab, etc.)
+        ply_path = models_dir / f"{fs_subject}_brain_3d.ply"
+        combined_brain.save(str(ply_path))
+        logger.info(f"Modelo 3D guardado exitosamente en: {ply_path}")
+
+        # Formato OBJ / STL (si VTK/PyVista lo soporta directamente en el entorno)
+        try:
+            stl_path = models_dir / f"{fs_subject}_brain_3d.stl"
+            combined_brain.save(str(stl_path))
+            logger.info(f"Modelo 3D STL guardado exitosamente en: {stl_path}")
+        except Exception as err:
+            logger.warning(f"No se pudo guardar en formato STL secundario: {err}")
+
     else:
-        logger.warning(f"No se encontraron superficies pial en {subj_path}")
-
+        logger.warning(f"No se encontraron mallas pial en {subj_path}")
 
 
 # Current path
