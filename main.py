@@ -514,6 +514,7 @@ if steps is not None:
 else:
     logger.info("run_source_estimation is False: skipping mne_bids_pipeline execution")
 
+'''
 # CREATE INTERACTIVE 3D VISUALIZATION
 # fs_subject: FreeSurfer subject that actually contains the surfaces
 # (fsaverage if a template was used, or the subject reconstructed with recon-all)
@@ -573,3 +574,21 @@ for path in real_deriv_root.rglob("*.html"):
                 dest.write_text(content, encoding='utf-8')
             except Exception as e:
                 logger.warning(f"The link to the interactive figures could not be inserted in {dest.name}: {e}")
+'''
+# Determinar nombre del sujeto en FreeSurfer
+fs_subject = use_template_mri if use_template_mri else (f"sub-{subject}" if (subjects_dir / f"sub-{subject}").exists() else subject)
+
+# Generación del reporte 3D interactivo real usando mne.Report
+generate_true_3d_interactive_report(
+    subjects_dir=subjects_dir,
+    fs_subject=fs_subject,
+    deriv_root=deriv_root,
+    html_report_dir=html_report_dir,
+    subject=subject
+)
+
+# Copiar además todos los reportes nativos que generó mne-bids-pipeline
+for path in deriv_root.resolve().rglob("*.html"):
+    if "sub-average" not in path.name:
+        dest = html_report_dir / path.name
+        copyfile(path, dest)
