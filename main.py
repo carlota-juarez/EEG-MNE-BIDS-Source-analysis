@@ -53,17 +53,6 @@ logger.info(f"MNE version: {mne.__version__}")
 logger.info(f"PyVista version: {pv.__version__}")
 logger.info(f"VTK version: {vtk.vtkVersion().GetVTKVersion()}")
 
-# In headless environments using PyVista, VTK and Xvfb, 3D figures often fails due to OpenGL calls.
-def _safe_call(fn, retries=1, delay=2):
-    for attempt in range(retries + 1):
-        try:
-            return fn()
-        except Exception:
-            if attempt == retries:
-                raise
-            logger.warning(f"Retrying after transient rendering error (attempt {attempt + 1})")
-            time.sleep(delay)
-'''
 # 3D IMAGE GENERATION
 def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_report_dir, subject):
     # Returns a list of (visible_label, html_filename) only those that were successfully generated.
@@ -76,6 +65,9 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
     
     # Initialization of the list to be returned
     generated = []
+
+    # STATIC FIGURES: CO-REGISTRATION, BEM AND SOURCES
+    
     # 1. Co-registration and BEM surfaces
     try:
         # Search recursively within deriv_root for the files 
@@ -116,6 +108,7 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
             png_path = interactive_dir / f'sub-{subject}_coreg_bem.png'
             # Static screenshot of the 3D figure
             fig.plotter.screenshot(str(png_path))
+            '''
             out_path = interactive_dir / f'sub-{subject}_coreg_bem.html'
             try:
                 # Export the scene to interactive HTML
@@ -126,16 +119,20 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                 logger.warning(err)
                 generated.append(('Co-registration and BEM surfaces (Estático)', png_path.name))
                 logger.info(f"Static figure saved in {png_path}")
+            '''
             fig.plotter.close()
             # Record the readable label and the file name in the list of results 
+            generated.append(('Co-registration and BEM surfaces (Static)', png_path.name, 'image'))
+            logger.info(f"Static figure saved in {png_path}")
     except Exception as e:
-        logger.warning(f"The interactive figure could not be generated: {e}")
+        logger.warning(f"The static figure could not be generated: {e}")
         
     # 2. Source estimate
     try:
         # Search for source estimation files in .stc format
         stc_candidates = sorted(deriv_root.rglob(f"sub-{subject}*+hemi.h5")) or \
                          sorted(deriv_root.rglob(f"sub-{subject}*-lh.stc"))
+        '''
         stc_subject = fs_subject
         stc_subjects_dir = subjects_dir
         if not stc_candidates:
@@ -143,6 +140,8 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
             stc_candidates = sorted(deriv_root.rglob("*+hemi.h5")) or sorted(deriv_root.rglob("*-lh.stc"))
         else:
             # Take the first candidate and remove the suffix -lh.stc
+        '''
+        if stc_candidates:
             stc_file = str(stc_candidates[0])
             if stc_file.endswith('-lh.stc'):
                 stc_file = stc_file[:-len('-lh.stc')]
@@ -159,7 +158,7 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
             png_path = interactive_dir / f'sub-{subject}_source_estimate.png'
             # Static screenshot of the 3D figure
             brain.save_image(str(png_path))
-
+            '''
             out_path = interactive_dir / f'sub-{subject}_source_estimate.html'
             try:
                 # Export the scene to interactive HTML
@@ -170,39 +169,17 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                 logger.warning(err)
                 generated.append(('Source estimate (Static)', png_path.name))
                 logger.info(f"Static source estimate figure saved in {png_path}")
+            '''
             brain.close()
             # Record the readable label and the file name in the list of results 
+            generated.append(('Source estimate (Static)', png_path.name, 'image'))
+            logger.info(f"Static source estimate figure saved in {png_path}")
     except Exception as e:
         logger.warning(f"The interactive figure could not be generated: {e}")          
 
-    # 3. HTML index
-    if generated:
-        index_path = interactive_dir / 'index.html'
-        with open(index_path, 'w', encoding='utf-8') as idx:
-            idx.write("<html><head><meta charset='utf-8'>"
-                       "<title></title>Interactive 3D Visualizations</head><body>")
-            idx.write(f"<h1>Sub-{subject}: Interactive 3D Visualizations</h1>")
-            idx.write("<p>Drag with the left mouse button to rotate and scroll the mouse wheel to zoom</p>")
-            for label, filename in generated:
-                idx.write(f"<h2>{label}</h2>")
-                idx.write(f"<iframe src='{filename}' width='100%' height='700' "
-                          f"style='border:none;'></iframe>")
-            idx.write("</body></html>")
- 
-    return generated
-'''
+    # 3D INTERACTIVE MODEL 
 
-def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_report_dir, subject):
-    """
-    Genera un reporte 3D interactivo en index.html utilizando Three.js vía CDN.
-    No requiere instalar nada en Brainlife/Docker ni en la máquina local.
-    """
-    interactive_dir = html_report_dir / 'interactive_3d'
-    interactive_dir.mkdir(parents=True, exist_ok=True)
-    
-    generated = []
-
-    # 1. Intentar construir la vista 3D de la corteza cerebral usando MNE y Three.js
+    # Create a 3D view of the cerebral cortex using MNE and Three.js
     try:
         subj_path = Path(subjects_dir) / fs_subject / 'surf'
         lh_pial = subj_path / 'lh.pial'
@@ -212,7 +189,7 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
         faces_list = []
         vertex_offset = 0
 
-        # Leer las mallas de ambos hemisferios
+        # Read the grids for both hemispheres
         for surf_path in [lh_pial, rh_pial]:
             if surf_path.exists():
                 coords, faces = mne.read_surface(str(surf_path))
@@ -225,12 +202,12 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
             all_vertices = np.vstack(vertices_list).flatten().tolist()
             all_faces = np.vstack(faces_list).flatten().tolist()
 
-            # Plantilla HTML autónoma que carga Three.js desde CDN público
+            # HTML template for interactive 3D figure visualization
             html_content = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Modelo 3D Interactivo - Sub-{subject}</title>
+    <title>Interactive 3D Model - Sub-{subject}</title>
     <style>
         body {{ margin: 0; overflow: hidden; background-color: #111; font-family: sans-serif; }}
         #info {{
@@ -244,10 +221,10 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
 </head>
 <body>
     <div id="info">
-        <b>Modelo 3D ({fs_subject})</b><br>
-        • Clic izquierdo: Rotar<br>
-        • Rueda ratón: Zoom<br>
-        • Clic derecho: Desplazar
+        <b>3D model ({fs_subject})</b><br>
+        • Left-click: Rotate<br>
+        • Mouse wheel: Zoom<br>
+        • Right-click: Scroll
     </div>
     <script>
         const vertices = new Float32Array({json.dumps(all_vertices)});
@@ -311,25 +288,32 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
 
             brain_html = interactive_dir / f'sub-{subject}_brain_3d.html'
             brain_html.write_text(html_content, encoding='utf-8')
-            generated.append(('Superficie Cerebral 3D Interactiva', brain_html.name))
-            logger.info(f"Modelo 3D generado en {brain_html}")
+            generated.append(('Interactive 3D Brain Surface', brain_html.name))
+            logger.info(f"3D model generated in {brain_html}")
 
     except Exception as e:
-        logger.warning(f"No se pudo extraer la superficie 3D: {e}")
+        logger.warning(f"The 3D surface could not be generated: {e}")
 
-    # 2. Generación del index.html para incrustar los marcos interactivos
+    # HTML index
     if generated:
         index_path = interactive_dir / 'index.html'
         with open(index_path, 'w', encoding='utf-8') as idx:
             idx.write("<html><head><meta charset='utf-8'>"
-                       "<title>Visualizaciones 3D Interactivas</title></head><body>")
-            idx.write(f"<h1>Sub-{subject}: Visualización 3D Interactiva</h1>")
-            idx.write("<p>Arrastra con el botón izquierdo para rotar y usa la rueda del ratón para hacer zoom.</p>")
-            for label, filename in generated:
-                idx.write(f"<h2>{label}</h2>")
-                idx.write(f"<iframe src='{filename}' width='100%' height='700' style='border:none;'></iframe>")
+                       "<title></title>Interactive 3D Visualizations</head><body>")
+            idx.write(f"<h1>Sub-{subject}: Interactive 3D Visualizations</h1>")
+            idx.write("<p>Drag with the left mouse button to rotate and scroll the mouse wheel to zoom</p>")
+            
+            for label, filename, kind in generated:
+                idx.write(f"<div style='background:white; padding:15px; margin-bottom:25px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1);'>")
+                idx.write(f"<h2 style='color:#0277bd; margin-top:0;'>{label}</h2>")
+                if kind == 'iframe':
+                    idx.write(f"<iframe src='{filename}' width='100%' height='600' style='border:none; border-radius:4px;'></iframe>")
+                else:
+                    idx.write(f"<div style='text-align:center;'><img src='{filename}' style='max-width:100%; height:auto; border-radius:4px;'/></div>")
+                idx.write(f"</div>")
+                
             idx.write("</body></html>")
-
+ 
     return generated
 
 # Current path
@@ -625,29 +609,9 @@ except Exception as e:
 
 real_deriv_root = deriv_root.resolve()
 
-interactive_link_html = (
-    "<div style='padding:12px;margin-top:16px;background:#eef3ff;"
-    "border-top:2px solid #6699cc;font-family:sans-serif;'>"
-    "<a href='interactive_3d/index.html' target='_blank'>"
-    "Drag with the left mouse button to rotate and scroll the mouse wheel to zoom</a></div>"
-)
-
 for path in real_deriv_root.rglob("*.html"):
     if "sub-average" not in path.name:
         logger.info(f"{path.name} copied to the output")
         dest = html_report_dir/path.name
         copyfile(path, dest)
 
-        # Only reports generated by this App should get the interactive link 
-        # The time this file was modified is the same as or later than the time the pipeline started?
-        report_by_this_app = path.stat().st_mtime >= pipeline_start_time
-        if generated_3d_figures and report_by_this_app:
-            try:
-                content = dest.read_text(encoding='utf-8')
-                if "</body>" in content:
-                    content = content.replace("</body>", interactive_link_html + "</body>")
-                else:
-                    content += interactive_link_html
-                dest.write_text(content, encoding='utf-8')
-            except Exception as e:
-                logger.warning(f"The link to the interactive figures could not be inserted in {dest.name}: {e}")
