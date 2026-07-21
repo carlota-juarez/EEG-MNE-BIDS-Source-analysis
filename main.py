@@ -15,6 +15,7 @@ import os
 import time 
 from shutil import copyfile, rmtree, copytree, copy
 import logging
+import numpy as np
 
 # Logger configuration
 
@@ -167,7 +168,7 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                 logger.info(f"Source estimate figure saved in {out_path}")
             except Exception as err:
                 logger.warning(err)
-                generated.append(('Source estimate (Estático)', png_path.name))
+                generated.append(('Source estimate (Static)', png_path.name))
                 logger.info(f"Static source estimate figure saved in {png_path}")
             brain.close()
             # Record the readable label and the file name in the list of results 
@@ -191,116 +192,145 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
     return generated
 '''
 
-
-def generate_true_3d_interactive_report(subjects_dir, fs_subject, deriv_root, html_report_dir, subject):
-    # Genera un reporte HTML verdaderamente interactivo utilizando mne.Report
-    set_3d_backend("pyvistaqt")
-    
+def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_report_dir, subject):
+    """
+    Genera un reporte 3D interactivo en index.html utilizando Three.js vía CDN.
+    No requiere instalar nada en Brainlife/Docker ni en la máquina local.
+    """
     interactive_dir = html_report_dir / 'interactive_3d'
     interactive_dir.mkdir(parents=True, exist_ok=True)
     
-    # Creamos un informe independiente MNE
-    report = mne.Report(title=f"Reporte 3D Interactivo - Sujeto {subject}", verbose=True)
+    generated = []
 
-    # 1. Añadir Alineación de Sensores y Co-registro 3D Interactivo
+    # 1. Intentar construir la vista 3D de la corteza cerebral usando MNE y Three.js
     try:
-        trans_candidates = sorted(deriv_root.rglob(f"sub-{subject}*trans.fif"))
-        info_candidates = (
-            sorted(deriv_root.rglob(f"sub-{subject}*_proc-clean_raw.fif")) or 
-            sorted(deriv_root.rglob(f"sub-{subject}*raw.fif")) or 
-            sorted(deriv_root.rglob(f"sub-{subject}*epo.fif")) or
-            sorted(deriv_root.rglob(f"sub-{subject}*ave.fif"))
-        )
-        if trans_candidates and info_candidates:
-            info = mne.io.read_info(str(info_candidates[0]))
-            
-            logger.info("Generando visualización 3D de Co-registro...")
-            report.add_trans(
-                trans=str(trans_candidates[0]),
-                info=info,
-                subject=fs_subject,
-                subjects_dir=str(subjects_dir),
-                title="Co-registro 3D (BEM y Electrodos/Sensores)",
-                alpha=0.8
-            )
+        subj_path = Path(subjects_dir) / fs_subject / 'surf'
+        lh_pial = subj_path / 'lh.pial'
+        rh_pial = subj_path / 'rh.pial'
+        
+        vertices_list = []
+        faces_list = []
+        vertex_offset = 0
+
+        # Leer las mallas de ambos hemisferios
+        for surf_path in [lh_pial, rh_pial]:
+            if surf_path.exists():
+                coords, faces = mne.read_surface(str(surf_path))
+                vertices_list.append(coords)
+                faces_list.append(faces + vertex_offset)
+                vertex_offset += len(coords)
+
+        if vertices_list:
+            import numpy as np
+            all_vertices = np.vstack(vertices_list).flatten().tolist()
+            all_faces = np.vstack(faces_list).flatten().tolist()
+
+            # Plantilla HTML autónoma que carga Three.js desde CDN público
+            html_content = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Modelo 3D Interactivo - Sub-{subject}</title>
+    <style>
+        body {{ margin: 0; overflow: hidden; background-color: #111; font-family: sans-serif; }}
+        #info {{
+            position: absolute; top: 10px; left: 10px; color: white;
+            background: rgba(0,0,0,0.7); padding: 10px 15px; border-radius: 8px; pointer-events: none;
+        }}
+    </style>
+    <!-- Three.js y OrbitControls desde CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="info">
+        <b>Modelo 3D ({fs_subject})</b><br>
+        • Clic izquierdo: Rotar<br>
+        • Rueda ratón: Zoom<br>
+        • Clic derecho: Desplazar
+    </div>
+    <script>
+        const vertices = new Float32Array({json.dumps(all_vertices)});
+        const indices = new Uint32Array({json.dumps(all_faces)});
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111116);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, -200, 50);
+
+        const renderer = new THREE.WebGLRenderer({{ antialias: true }});
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+        geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+        geometry.computeVertexNormals();
+        geometry.center();
+
+        const material = new THREE.MeshPhongMaterial({{
+            color: 0xd0d5dd,
+            specular: 0x222222,
+            shininess: 25,
+            side: THREE.DoubleSide
+        }});
+
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        const ambientLight = new THREE.AmbientLight(0x666666);
+        scene.add(ambientLight);
+
+        const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight1.position.set(1, 1, 1).normalize();
+        scene.add(dirLight1);
+
+        const dirLight2 = new THREE.DirectionalLight(0x555555, 0.5);
+        dirLight2.position.set(-1, -1, -1).normalize();
+        scene.add(dirLight2);
+
+        function animate() {{
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }}
+        animate();
+
+        window.addEventListener('resize', () => {{
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }});
+    </script>
+</body>
+</html>"""
+
+            brain_html = interactive_dir / f'sub-{subject}_brain_3d.html'
+            brain_html.write_text(html_content, encoding='utf-8')
+            generated.append(('Superficie Cerebral 3D Interactiva', brain_html.name))
+            logger.info(f"Modelo 3D generado en {brain_html}")
+
     except Exception as e:
-        logger.warning(f"No se pudo añadir el co-registro 3D al reporte: {e}")
+        logger.warning(f"No se pudo extraer la superficie 3D: {e}")
 
-    # 2. Añadir Reconstrucción de Fuentes 3D (STC) Interactiva
-    try:
-        stc_candidates = sorted(deriv_root.rglob(f"sub-{subject}*+hemi.h5")) or \
-                         sorted(deriv_root.rglob(f"sub-{subject}*-lh.stc"))
-        if stc_candidates:
-            stc_file = str(stc_candidates[0])
-            if stc_file.endswith('-lh.stc'):
-                stc_file = stc_file[:-len('-lh.stc')]
-            stc = mne.read_source_estimate(stc_file)
-            
-            logger.info("Generando visualización 3D de Estimación de Fuentes...")
-            report.add_stc(
-                stc=stc,
-                subject=fs_subject,
-                subjects_dir=str(subjects_dir),
-                title="Estimación de Fuentes 3D (Cortical Surface)",
-                n_time_points=5 # Genera muestras interactivas del tiempo
-            )
-    except Exception as e:
-        logger.warning(f"No se pudo añadir la estimación de fuentes 3D al reporte: {e}")
+    # 2. Generación del index.html para incrustar los marcos interactivos
+    if generated:
+        index_path = interactive_dir / 'index.html'
+        with open(index_path, 'w', encoding='utf-8') as idx:
+            idx.write("<html><head><meta charset='utf-8'>"
+                       "<title>Visualizaciones 3D Interactivas</title></head><body>")
+            idx.write(f"<h1>Sub-{subject}: Visualización 3D Interactiva</h1>")
+            idx.write("<p>Arrastra con el botón izquierdo para rotar y usa la rueda del ratón para hacer zoom.</p>")
+            for label, filename in generated:
+                idx.write(f"<h2>{label}</h2>")
+                idx.write(f"<iframe src='{filename}' width='100%' height='700' style='border:none;'></iframe>")
+            idx.write("</body></html>")
 
-    # Guardar el HTML interactivo compilado
-    output_html_path = interactive_dir / 'index.html'
-    report.save(str(output_html_path), overwrite=True, open_browser=False)
-    logger.info(f"Reporte 3D Interactivo generado exitosamente en: {output_html_path}")
-
-def export_3d_mesh_files(subjects_dir, fs_subject, html_report_dir):
-    """
-    Lee las mallas corticales (FreeSurfer/MNE) y las exporta a formatos 3D reales 
-    usando PyVista (sin requerir trimesh).
-    """
-    import numpy as np
-    import pyvista as pv
-
-    models_dir = html_report_dir / 'models_3d'
-    models_dir.mkdir(parents=True, exist_ok=True)
-
-    subj_path = Path(subjects_dir) / fs_subject / 'surf'
-    lh_pial = subj_path / 'lh.pial'
-    rh_pial = subj_path / 'rh.pial'
-
-    pyvista_meshes = []
-
-    # 1. Leer e instanciar mallas con MNE y PyVista
-    for surf_path in [lh_pial, rh_pial]:
-        if surf_path.exists():
-            coords, faces = mne.read_surface(str(surf_path))
-            # PyVista requiere que la matriz de caras tenga el número de vértices (3 para triángulos) al inicio de cada fila
-            faces_pv = np.hstack(np.c_[np.full(len(faces), 3), faces])
-            mesh = pv.PolyData(coords, faces_pv)
-            pyvista_meshes.append(mesh)
-
-    if pyvista_meshes:
-        # 2. Combinar hemisferios en un solo objeto 3D
-        combined_brain = pyvista_meshes[0]
-        if len(pyvista_meshes) > 1:
-            combined_brain = combined_brain.merge(pyvista_meshes[1:])
-
-        # 3. Guardar archivos 3D compatibles
-        # Formato PLY (estándar 3D universal compatible con Windows, Mac, Blender, MeshLab, etc.)
-        ply_path = models_dir / f"{fs_subject}_brain_3d.ply"
-        combined_brain.save(str(ply_path))
-        logger.info(f"Modelo 3D guardado exitosamente en: {ply_path}")
-
-        # Formato OBJ / STL (si VTK/PyVista lo soporta directamente en el entorno)
-        try:
-            stl_path = models_dir / f"{fs_subject}_brain_3d.stl"
-            combined_brain.save(str(stl_path))
-            logger.info(f"Modelo 3D STL guardado exitosamente en: {stl_path}")
-        except Exception as err:
-            logger.warning(f"No se pudo guardar en formato STL secundario: {err}")
-
-    else:
-        logger.warning(f"No se encontraron mallas pial en {subj_path}")
-
+    return generated
 
 # Current path
 
@@ -562,7 +592,6 @@ if steps is not None:
 else:
     logger.info("run_source_estimation is False: skipping mne_bids_pipeline execution")
 
-'''
 # CREATE INTERACTIVE 3D VISUALIZATION
 # fs_subject: FreeSurfer subject that actually contains the surfaces
 # (fsaverage if a template was used, or the subject reconstructed with recon-all)
@@ -622,30 +651,3 @@ for path in real_deriv_root.rglob("*.html"):
                 dest.write_text(content, encoding='utf-8')
             except Exception as e:
                 logger.warning(f"The link to the interactive figures could not be inserted in {dest.name}: {e}")
-'''
-# Determinar nombre del sujeto en FreeSurfer
-fs_subject = use_template_mri if use_template_mri else (f"sub-{subject}" if (subjects_dir / f"sub-{subject}").exists() else subject)
-
-# Generación del reporte 3D interactivo real usando mne.Report
-generate_true_3d_interactive_report(
-    subjects_dir=subjects_dir,
-    fs_subject=fs_subject,
-    deriv_root=deriv_root,
-    html_report_dir=html_report_dir,
-    subject=subject
-)
-
-try:
-    export_3d_mesh_files(
-        subjects_dir=subjects_dir,
-        fs_subject=fs_subject,
-        html_report_dir=html_report_dir
-    )
-except Exception as e:
-    logger.warning(f"No se pudo exportar la malla 3D: {e}")
-
-# Copiar además todos los reportes nativos que generó mne-bids-pipeline
-for path in deriv_root.resolve().rglob("*.html"):
-    if "sub-average" not in path.name:
-        dest = html_report_dir / path.name
-        copyfile(path, dest)
