@@ -193,6 +193,7 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
         for surf_path in [lh_pial, rh_pial]:
             if surf_path.exists():
                 coords, faces = mne.read_surface(str(surf_path))
+                logger.info(f"Surface {surf_path.name} -> Vertex: {len(coords)}, faces (triangles): {len(faces)}")
                 try:
                     coords, faces = mne.decimate_surface(coords, faces, n_triangles=len(faces) // 5)
                 except Exception:
@@ -317,10 +318,6 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
             for surf_path in [subj_path / 'lh.pial', subj_path / 'rh.pial']:
                 if surf_path.exists():
                     coords, faces = mne.read_surface(str(surf_path))
-                    try:
-                        coords, faces = mne.decimate_surface(coords, faces, n_triangles=len(faces) // 5)
-                    except Exception:
-                        pass
                     vertices_list.append(coords)
                     faces_list.append(faces + vertex_offset)
                     vertex_offset += len(coords)
