@@ -42,8 +42,6 @@ from mne.viz import set_3d_backend
 import vtk
 import pyvista as pv
 pv.OFF_SCREEN = True
-import nest_asyncio
-nest_asyncio.apply()
 
 if not os.environ.get('DISPLAY'):
     pv.start_xvfb(wait=3)
