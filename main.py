@@ -398,11 +398,16 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
             const activations = timeData[frameIndex];
             const colorAttr = geometry.getAttribute('color');
             
-            for (let i = 0; i < activations.length; i++) {{
-                let val = activations[i] || 0;
+            // Recorremos todos los vértices de la malla geométrica
+            const totalVertices = vertices.length / 3;
+            for (let i = 0; i < totalVertices; i++) {{
+                // Si el índice existe en activations lo usamos, si no, ponemos un gris base de fondo
+                let val = (i < activations.length) ? activations[i] : 0;
+                
                 let r = val > 0 ? Math.min(1, val * 5) : 0;
                 let b = val < 0 ? Math.min(1, -val * 5) : 0;
-                let g = 0.1;
+                let g = (val === 0) ? 0.2 : 0.1; // Fondo grisáceo para que se vea la anatomía
+                
                 colorAttr.setXYZ(i, r, g, b);
             }}
             colorAttr.needsUpdate = true;
