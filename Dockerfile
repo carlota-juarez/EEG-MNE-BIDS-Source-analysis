@@ -1,100 +1,108 @@
-FROM ubuntu:jammy
-
+FROM python:3.11-slim
+ 
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_NO_CACHE_DIR=1 \
-    PYTHONDONTWRITEBYTECODE=1
-
-# 1. Instalar dependencias del sistema operativo, Perl (para MNI) y librerías gráficas/C++
+    PYTHONDONTWRITEBYTECODE=1 \
+    MNE_BROWSER_BACKEND=matplotlib \
+    MPLBACKEND=Agg \
+    PYVISTA_OFF_SCREEN=true \
+    MNE_3D_OPTION_ANTIALIAS=false \
+    LIBGL_ALWAYS_SOFTWARE=1 \
+    MNE_3D_BACKEND=pyvistaqt \
+    OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    NUMEXPR_NUM_THREADS=1 \
+    VECLIB_MAXIMUM_THREADS=1
+ 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    bc \
-    curl \
-    tar \
-    gzip \
-    unzip \
-    tcsh \
-    perl \
-    perl-modules \
-    libxml-parser-perl \
-    libgomp1 \
-    libglu1-mesa \
-    libgl1 \
-    libgl1-mesa-dri \
-    libosmesa6 \
-    libxmu6 \
-    libxt6 \
-    libsm6 \
-    libice6 \
-    libx11-dev \
-    libxext-dev \
-    ca-certificates \
-    bzip2 \
-    git \
-    nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
-# 2. Descargar e instalar FreeSurfer 7.4.1 (versión compatible con Ubuntu 22.04 / jammy)
-RUN echo "Downloading FreeSurfer 7.4.1 ..." \
-    && mkdir -p /opt/freesurfer \
-    && curl -fL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-linux-ubuntu22_amd64-7.4.1.tar.gz \
-    | tar -xz -C /opt/freesurfer --strip-components 1 \
-         --exclude='average/mult-comp-cor' \
-         --exclude='lib/cuda' \
-         --exclude='lib/qt' \
-         --exclude='subjects/V1_average' \
-         --exclude='subjects/bert' \
-         --exclude='subjects/cvs_avg35' \
-         --exclude='subjects/cvs_avg35_inMNI152' \
-         --exclude='subjects/fsaverage3' \
-         --exclude='subjects/fsaverage4' \
-         --exclude='subjects/fsaverage5' \
-         --exclude='subjects/fsaverage6' \
-         --exclude='subjects/fsaverage_sym' \
-         --exclude='trctrain'
-
-# 3. Configurar Miniconda y dependencias de Python
-ENV CONDA_DIR="/opt/miniconda-latest"
-RUN echo "Downloading Miniconda installer ..." \
-    && conda_installer="/tmp/miniconda.sh" \
-    && curl -fsSL -o "$conda_installer" https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
-    && bash "$conda_installer" -b -p /opt/miniconda-latest \
-    && rm -f "$conda_installer" \
-    && export PATH="/opt/miniconda-latest/bin:$PATH" \
-    && conda update -yq -nbase conda \
-    && conda install -yq -nbase conda-libmamba-solver \
-    && conda config --set solver libmamba \
-    && conda config --system --prepend channels conda-forge \
-    && conda config --system --set channel_priority strict \
-    && conda install -y --name base "pandas=1.5.3" "nibabel" \
-    && conda clean --all --yes
-
-# 4. Instalar bids-validator
-RUN npm install -g bids-validator@1.12.0
-
-# 5. Definir variables de entorno limpias y sin rutas duplicadas
-ENV OS="Linux" \
-    FREESURFER_HOME="/opt/freesurfer" \
-    SUBJECTS_DIR="/opt/freesurfer/subjects" \
-    LOCAL_DIR="/opt/freesurfer/local" \
-    FSFAST_HOME="/opt/freesurfer/fsfast" \
-    MINC_BIN_DIR="/opt/freesurfer/mni/bin" \
-    MINC_LIB_DIR="/opt/freesurfer/mni/lib" \
-    MNI_DIR="/opt/freesurfer/mni" \
-    MNI_DATAPATH="/opt/freesurfer/mni/data" \
-    PERL5LIB="/opt/freesurfer/mni/lib/perl5" \
-    MNI_PERL5LIB="/opt/freesurfer/mni/lib/perl5" \
-    PATH="/opt/miniconda-latest/bin:/opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:/opt/freesurfer/mni/bin:$PATH"
-
-# 6. Directorios de trabajo y scripts de ejecución
-RUN mkdir -p /root/matlab && touch /root/matlab/startup.m \
-    && mkdir -p /scratch /local-scratch /work
-
-# Corregir enlace simbólico de sh a bash por seguridad en subprocesos
-RUN rm -f /bin/sh && ln -s /bin/bash /bin/sh
-
-COPY ["run.py", "/run.py"]
-RUN chmod +x /run.py
-
-COPY ["version", "/version"]
-
+        xvfb \
+        git \
+        libgl1 \
+        libgl1-mesa-dri \
+        libosmesa6 \
+        libegl1 \
+        libglib2.0-0 \
+        curl \
+        tcsh \
+        bc \
+        tar \
+        gzip \
+        unzip \
+        libgomp1 \
+        libgsl-dev \
+        libfontconfig1 \
+        libfreetype6 \
+        libxkbcommon0 \
+        libxkbcommon-x11-0 \
+        libdbus-1-3 \
+        libxcb-icccm4 \
+        libxcb-image0 \
+        libxcb-keysyms1 \
+        libxcb-randr0 \
+        libxcb-render-util0 \
+        libxcb-shape0 \
+        libxcb-sync1 \
+        libxcb-xfixes0 \
+        libxcb-xinerama0 \
+        libx11-xcb1 \
+        libsm6 \
+        libice6 \
+        libxrender1 \
+        perl \
+        libxml-parser-perl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+ 
+RUN pip install --no-cache-dir \
+        "numpy<2" \
+        "scipy" \
+        "matplotlib" \
+        "scikit-learn" \
+        "PyQt5" \
+        pyvista==0.46.3 \
+        pyvistaqt==0.11.3 \
+        nest_asyncio \
+        ipyevents \
+        ipywidgets \
+        trame \
+        trame-vtk \
+        trame-vuetify \
+        mne \
+        mne-bids \
+        mne-bids-pipeline==1.10.1 \
+    && pip uninstall -y vtk \
+    && pip install --no-cache-dir --extra-index-url https://wheels.vtk.org vtk-osmesa \
+    && find /usr/local/lib/python3.11 -type d -name "__pycache__" -exec rm -rf {} + \
+    && find /usr/local/lib/python3.11 -type d \( -name "tests" -o -name "test" \) -exec rm -rf {} + \
+    && rm -rf /root/.cache /tmp/*
+ 
+RUN curl -fsSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-linux-ubuntu22_amd64-7.4.1.tar.gz \
+    | tar -xz -C /opt && \
+    rm -rf \
+        /opt/freesurfer/subjects/fsaverage3 \
+        /opt/freesurfer/subjects/fsaverage4 \
+        /opt/freesurfer/subjects/fsaverage5 \
+        /opt/freesurfer/subjects/fsaverage6 \
+        /opt/freesurfer/subjects/cv90 \
+        /opt/freesurfer/subjects/bert \
+        /opt/freesurfer/subjects/sample \
+        /opt/freesurfer/subjects/V1_average \
+        /opt/freesurfer/subjects/fsaverage_sym \
+        /opt/freesurfer/subjects/cvs_avg35 \
+        /opt/freesurfer/subjects/cvs_avg35_inMNI152 \
+        /opt/freesurfer/trctrain \
+        /opt/freesurfer/fsfast \
+        /opt/freesurfer/matlab \
+        /opt/freesurfer/docs \
+ 
 WORKDIR /work
-ENTRYPOINT ["python", "/run.py"]
+ 
+RUN rm -f /bin/sh && ln -s /bin/bash /bin/sh
+ 
+RUN ldconfig
+ 
+ENV FREESURFER_HOME=/opt/freesurfer \
+    SUBJECTS_DIR=/opt/freesurfer/subjects \
+    PERL5LIB=/opt/freesurfer/mni/lib/perl5 \
+    PATH=/opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:/opt/freesurfer/mni/bin:$PATH
