@@ -684,6 +684,11 @@ with open(file_name, 'w') as f:
             f.write(f"noise_cov = '{noise_cov}'\n")
         else:
             f.write(f"noise_cov = {noise_cov}\n")
+            
+    if not (isinstance(noise_cov, str) and noise_cov == 'emptyroom'):
+        f.write("process_empty_room = False\n")
+    if not (isinstance(noise_cov, str) and noise_cov == 'rest'):
+        f.write("process_rest = False\n")
 
     noise_cov_method = config.get('noise_cov_method', 'shrunk')
     if noise_cov_method:
@@ -749,7 +754,7 @@ with open(file_name, 'w') as f:
 
         if not license_target.exists():
             raise FileNotFoundError("No FreeSurfer license available. Provide one in the 'fs_license' parameter or make sure the computing resource exposes FS_LICENSE")
-            
+
         os.environ['FREESURFER_HOME'] = str(writable_fs_home.resolve())
         os.environ['FS_LICENSE'] = str(license_target.resolve())
         steps = "freesurfer,source"
