@@ -723,6 +723,12 @@ with open(file_name, 'w') as f:
 
         os.environ['FREESURFER_HOME'] = str(writable_fs_home.resolve())
         os.environ['FS_LICENSE'] = str(license_target.resolve())
+        
+        # Configurar variables de entorno vitales para que FreeSurfer/Perl encuentre MNI/Startup.pm
+        fs_path = str(writable_fs_home.resolve())
+        os.environ['PATH'] = f"{fs_path}/bin:{fs_path}/fsfast/bin:{fs_path}/tktools:{fs_path}/mni/bin:" + os.environ.get('PATH', '')
+        os.environ['PERL5LIB'] = f"{fs_path}/mni/lib/perl5"
+        
         steps = "freesurfer,source"
 
     else:
