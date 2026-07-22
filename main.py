@@ -292,10 +292,20 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
             if vertices_list:
                 all_vertices = np.vstack(vertices_list).flatten().tolist()
                 all_faces = np.vstack(faces_list).flatten().tolist()
-                
-                # stc.data contiene la matriz [n_sources x n_times]
+                n_lh_verts = len(vertices_list[0])
+
+                # stc.data: [n_sources x n_times]; map sources -> surface via vertno
                 time_data = stc.data.T.tolist()
                 times = stc.times.tolist()
+                lh_vertno = stc.lh_vertno.tolist()
+                rh_vertno = stc.rh_vertno.tolist()
+                n_lh_sources = len(lh_vertno)
+
+                data_abs = np.abs(stc.data)
+                vmin = float(np.min(data_abs[data_abs > 0])) if np.any(data_abs > 0) else 0.0
+                vmax = float(np.percentile(data_abs, 95))
+                if vmax <= vmin:
+                    vmax = vmin + 1e-10
 
                 html_time_content = f"""<!DOCTYPE html>
 <html lang="es">
@@ -311,12 +321,26 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
         }}
         #time-slider {{ width: 100%; margin-top: 10px; cursor: pointer; }}
         #info {{ position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px; pointer-events: none; }}
+        #colorbar {{
+            position: absolute; bottom: 90px; left: 20px; color: white;
+            background: rgba(0,0,0,0.7); padding: 10px 12px; border-radius: 8px; pointer-events: none;
+            font-size: 12px;
+        }}
+        #colorbar-gradient {{
+            width: 180px; height: 14px; margin-bottom: 6px;
+            background: linear-gradient(to right, #555, #ff0000, #ffff00, #ffffff);
+            border-radius: 3px;
+        }}
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-    <div id="info"><b>Estimating Sources Over Time</b><br>Visualizando activación dinámica continua</div>
+    <div id="info"><b>Estimación de Fuentes en el Tiempo</b><br>Visualizando activación dinámica</div>
+    <div id="colorbar">
+        <div id="colorbar-gradient"></div>
+        <span>{vmin:.1f}</span> &nbsp;—&nbsp; <span>{vmax:.1f}</span>
+    </div>
     <div id="ui">
         <div>Tiempo: <span id="time-display">{times[0]:.3f}</span> s</div>
         <input type="range" id="time-slider" min="0" max="{len(times)-1}" value="0" step="1">
@@ -326,6 +350,33 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
         const indices = new Uint32Array({json.dumps(all_faces)});
         const timeData = {json.dumps(time_data)};
         const times = {json.dumps(times)};
+        const lhVertno = {json.dumps(lh_vertno)};
+        const rhVertno = {json.dumps(rh_vertno)};
+        const nLhVerts = {n_lh_verts};
+        const nLhSources = {n_lh_sources};
+        const vmin = {vmin};
+        const vmax = {vmax};
+
+        const BASE_R = 0.55, BASE_G = 0.55, BASE_B = 0.58;
+
+        function hotColor(t) {{
+            if (t <= 0) return [0.33, 0.33, 0.33];
+            if (t < 0.375) return [t / 0.375, 0, 0];
+            if (t < 0.75) return [1, (t - 0.375) / 0.375, 0];
+            return [1, 1, (t - 0.75) / 0.25];
+        }}
+
+        function activationToColor(val) {{
+            const intensity = Math.abs(val);
+            if (intensity <= vmin) return [BASE_R, BASE_G, BASE_B];
+            const t = Math.min(1.0, (intensity - vmin) / (vmax - vmin));
+            const hot = hotColor(t);
+            return [
+                BASE_R + t * (hot[0] - BASE_R),
+                BASE_G + t * (hot[1] - BASE_G),
+                BASE_B + t * (hot[2] - BASE_B),
+            ];
+        }}
 
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111116);
@@ -349,10 +400,9 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
         const colors = new Float32Array(vertices.length);
         geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-        // Material estándar equilibrado para mantener la volumetría cortical sin oscurecerse
         const material = new THREE.MeshStandardMaterial({{
-            vertexColors: true, 
-            side: THREE.DoubleSide, 
+            vertexColors: true,
+            side: THREE.DoubleSide,
             roughness: 0.5,
             metalness: 0.05
         }});
@@ -365,33 +415,27 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
         dirLight.position.set(1, 1, 1).normalize();
         scene.add(dirLight);
 
-        // Función de transferencia de color continua estilo MNE (Gris cortical base -> Amarillo -> Rojo)
-        void function updateBrainColors(frameIndex) {{
+        function updateBrainColors(frameIndex) {{
             const activations = timeData[frameIndex];
             const colorAttr = geometry.getAttribute('color');
             const totalVertices = vertices.length / 3;
 
             for (let i = 0; i < totalVertices; i++) {{
-                let val = (i < activations.length && activations[i] !== undefined) ? activations[i] : 0;
-                let intensity = Math.abs(val);
-                let r, g, b;
-
-                // Color gris cortical base idéntico al modelo 3D estático
-                let baseR = 0.82, baseG = 0.83, baseB = 0.86;
-
-                if (intensity < 0.1) {{
-                    r = baseR;
-                    g = baseG;
-                    b = baseB;
-                }} else {{
-                    let t = Math.min(1.0, (intensity - 0.1) * 4.0);
-                    r = 1.0;
-                    g = 1.0 - t; // Transición suave de amarillo a rojo
-                    b = 0.0;
-                }}
-
-                colorAttr.setXYZ(i, r, g, b);
+                colorAttr.setXYZ(i, BASE_R, BASE_G, BASE_B);
             }}
+
+            for (let s = 0; s < nLhSources; s++) {{
+                const vertIdx = lhVertno[s];
+                const [r, g, b] = activationToColor(activations[s]);
+                colorAttr.setXYZ(vertIdx, r, g, b);
+            }}
+
+            for (let s = 0; s < rhVertno.length; s++) {{
+                const vertIdx = nLhVerts + rhVertno[s];
+                const [r, g, b] = activationToColor(activations[nLhSources + s]);
+                colorAttr.setXYZ(vertIdx, r, g, b);
+            }}
+
             colorAttr.needsUpdate = true;
             document.getElementById('time-display').innerText = times[frameIndex].toFixed(3);
         }}
