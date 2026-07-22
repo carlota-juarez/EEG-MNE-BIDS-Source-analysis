@@ -49,6 +49,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libsm6 \
         libice6 \
         libxrender1 \
+        perl \
+        libxml-parser-perl \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
  
@@ -102,4 +104,5 @@ RUN ldconfig
  
 ENV FREESURFER_HOME=/opt/freesurfer \
     SUBJECTS_DIR=/opt/freesurfer/subjects \
+    PERL5LIB=/opt/freesurfer/mni/lib/perl5 \
     PATH=/opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:/opt/freesurfer/mni/bin:$PATH

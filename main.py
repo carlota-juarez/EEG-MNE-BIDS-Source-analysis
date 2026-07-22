@@ -12,8 +12,7 @@ import json
 from pathlib import Path
 import subprocess
 import os 
-import time 
-from shutil import copyfile, rmtree, copytree, copy
+from shutil import copyfile, rmtree, copytree 
 import logging
 import numpy as np
 import re
@@ -38,7 +37,6 @@ os.environ['MNE_3D_BACKEND'] = 'pyvistaqt'
 
 # Set up environment
 import mne
-import mne_bids
 from mne.viz import set_3d_backend
 import vtk
 import pyvista as pv
@@ -107,18 +105,6 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
             png_path = interactive_dir / f'sub-{subject}_coreg_bem.png'
             # Static screenshot of the 3D figure
             fig.plotter.screenshot(str(png_path))
-            '''
-            out_path = interactive_dir / f'sub-{subject}_coreg_bem.html'
-            try:
-                # Export the scene to interactive HTML
-                fig.plotter.export_html(str(out_path))
-                generated.append(('Co-registration and BEM surfaces', out_path.name))
-                logger.info(f"Interactive figure saved in {out_path}")
-            except Exception as err:
-                logger.warning(err)
-                generated.append(('Co-registration and BEM surfaces (Estático)', png_path.name))
-                logger.info(f"Static figure saved in {png_path}")
-            '''
             fig.plotter.close()
             # Record the readable label and the file name in the list of results 
             generated.append(('Co-registration and BEM surfaces (Static)', png_path.name, 'image'))
@@ -131,15 +117,6 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
         # Search for source estimation files in .stc format
         stc_candidates = sorted(deriv_root.rglob(f"sub-{subject}*+hemi.h5")) or \
                          sorted(deriv_root.rglob(f"sub-{subject}*-lh.stc"))
-        '''
-        stc_subject = fs_subject
-        stc_subjects_dir = subjects_dir
-        if not stc_candidates:
-            logger.warning("No source estimate file (.h5 or .stc) detected")
-            stc_candidates = sorted(deriv_root.rglob("*+hemi.h5")) or sorted(deriv_root.rglob("*-lh.stc"))
-        else:
-            # Take the first candidate and remove the suffix -lh.stc
-        '''
         if stc_candidates:
             stc_file = str(stc_candidates[0])
             if stc_file.endswith('-lh.stc'):
@@ -157,18 +134,6 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
             png_path = interactive_dir / f'sub-{subject}_source_estimate.png'
             # Static screenshot of the 3D figure
             brain.save_image(str(png_path))
-            '''
-            out_path = interactive_dir / f'sub-{subject}_source_estimate.html'
-            try:
-                # Export the scene to interactive HTML
-                brain.plotter.export_html(str(out_path))
-                generated.append(('Source estimate', out_path.name))
-                logger.info(f"Source estimate figure saved in {out_path}")
-            except Exception as err:
-                logger.warning(err)
-                generated.append(('Source estimate (Static)', png_path.name))
-                logger.info(f"Static source estimate figure saved in {png_path}")
-            '''
             brain.close()
             # Record the readable label and the file name in the list of results 
             generated.append(('Source estimate (Static)', png_path.name, 'image'))
@@ -202,7 +167,6 @@ def generate_interactive_3d_report(subjects_dir, fs_subject, deriv_root, html_re
                 vertex_offset += len(coords)
 
         if vertices_list:
-            import numpy as np
             all_vertices = np.vstack(vertices_list).flatten().tolist()
             all_faces = np.vstack(faces_list).flatten().tolist()
 
@@ -647,7 +611,7 @@ with open(file_name, 'w') as f:
     f.write(f"freesurfer_verbose = {freesurfer_verbose}\n")
 
     # Source space and forward solution
-
+    # Remove? -------------
     mri_t1_path_generator = config.get('mri_t1_path_generator', None)
     if mri_t1_path_generator:
         f.write(f"mri_t1_path_generator = '{mri_t1_path_generator}'\n")
@@ -655,7 +619,7 @@ with open(file_name, 'w') as f:
     mri_landmarks_kind = config.get('mri_landmarks_kind', None)
     if mri_landmarks_kind:
         f.write(f"mri_landmarks_kind = '{mri_landmarks_kind}'\n")
-
+    # ---------
     spacing = config.get('spacing', 'oct6')
     if spacing is not None:
         f.write(f"spacing = '{spacing}'\n")
@@ -700,10 +664,11 @@ with open(file_name, 'w') as f:
             f.write(f"cov_rank = '{cov_rank}'\n")
         else:
             f.write(f"cov_rank = {cov_rank}\n")
-
+    # remove?
     source_info_path_update = config.get('source_info_path_update', None)
     if source_info_path_update:
         f.write(f"source_info_path_update = '{source_info_path_update}'\n")
+    # -----------------------
     
     inverse_targets = config.get('inverse_targets', ['evoked'])
     if inverse_targets:
@@ -764,8 +729,6 @@ with open(file_name, 'w') as f:
         if use_template_mri:
             f.write(f"use_template_mri = '{use_template_mri}'\n")
         steps = "source"
-
-pipeline_start_time = time.time()
 
 # Run python script
 
