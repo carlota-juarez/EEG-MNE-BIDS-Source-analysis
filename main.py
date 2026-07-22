@@ -723,7 +723,16 @@ with open(file_name, 'w') as f:
         copyfile(t1_path, anat_dir/f'sub-{subject}_T1w{extension}')
 
         # Compute resource Freesurfer license or user license
-        license_target = Path(os.environ.get('FREESURFER_HOME', '/opt/freesurfer')) / 'license.txt'
+        original_fs_home = Path(os.environ.get('FREESURFER_HOME', '/opt/freesurfer'))
+        writable_fs_home = __location__ / 'freesurfer_home'
+        if not writable_fs_home.exists():
+            writable_fs_home.mkdir(parents=True)
+            for item in original_fs_home.iterdir():
+                link_path = writable_fs_home / item.name
+                if not link_path.exists():
+                    os.symlink(item, link_path)
+
+        license_target = writable_fs_home / 'license.txt'
 
         fs_license = config.get('fs_license', None)
         if fs_license and fs_license.strip() != "":
@@ -739,10 +748,9 @@ with open(file_name, 'w') as f:
                 logger.info(f"Using FreeSurfer license already available on the computing resource ({resource_license})")
 
         if not license_target.exists():
-            raise FileNotFoundError(
-                "No FreeSurfer license available. Provide one in the 'fs_license' parameter or make sure the computing resource exposes FS_LICENSE")
-
-        os.environ['FS_LICENSE'] = str(writable_fs_home.resolve())
+            raise FileNotFoundError("No FreeSurfer license available. Provide one in the 'fs_license' parameter or make sure the computing resource exposes FS_LICENSE")
+            
+        os.environ['FREESURFER_HOME'] = str(writable_fs_home.resolve())
         os.environ['FS_LICENSE'] = str(license_target.resolve())
         steps = "freesurfer,source"
 
