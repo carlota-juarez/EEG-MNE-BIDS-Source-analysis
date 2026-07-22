@@ -684,7 +684,7 @@ with open(file_name, 'w') as f:
             f.write(f"noise_cov = '{noise_cov}'\n")
         else:
             f.write(f"noise_cov = {noise_cov}\n")
-            
+
     if not (isinstance(noise_cov, str) and noise_cov == 'emptyroom'):
         f.write("process_empty_room = False\n")
     if not (isinstance(noise_cov, str) and noise_cov == 'rest'):
@@ -722,10 +722,11 @@ with open(file_name, 'w') as f:
         if t1_path is None or not t1_path.exists():
             raise FileNotFoundError("A T1w es needed to execute recon-all or set 'use_template_mri' to skip it")
         # Copy the t1w file to the BIDS directory 
-        anat_dir = deriv_root/f'sub-{subject}'/'anat'
-        anat_dir.mkdir(parents=True, exist_ok=True)
         extension = "".join(t1_path.suffixes)
-        copyfile(t1_path, anat_dir/f'sub-{subject}_T1w{extension}')
+        for target_root in (bids_root_path, deriv_root):
+            anat_dir = target_root/f'sub-{subject}'/'anat'
+            anat_dir.mkdir(parents=True, exist_ok=True)
+            copyfile(t1_path, anat_dir/f'sub-{subject}_T1w{extension}')
 
         # Compute resource Freesurfer license or user license
         original_fs_home = Path(os.environ.get('FREESURFER_HOME', '/opt/freesurfer'))
