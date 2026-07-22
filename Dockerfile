@@ -93,7 +93,6 @@ RUN curl -fsSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/free
         /opt/freesurfer/fsfast \
         /opt/freesurfer/matlab \
         /opt/freesurfer/docs \
-        /opt/freesurfer/average
  
 WORKDIR /work
  

@@ -27,6 +27,9 @@ export SINGULARITYENV_PYVISTA_OFF_SCREEN="true"
 export SINGULARITYENV_QT_QPA_PLATFORM="offscreen"
 export SINGULARITYENV_MPLBACKEND="Agg"
 export SINGULARITYENV_VTK_DEFAULT_OPENGL_WINDOW="vtkOSOpenGLRenderWindow"
- 
+
+# Include the FreeSurfer FS_LICENSE for the computing resource used to launch the app
+export SINGULARITYENV_FS_LICENSE="$FS_LICENSE"
+
 # Own image (uploaded to GitHub)
 singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids@sha256:d3b1e2677f67c4184052ba339164ba2fe655b7da2c3b4bc84ba2de3b1fe895ba python3 main.py
