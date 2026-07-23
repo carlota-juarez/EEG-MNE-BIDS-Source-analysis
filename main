@@ -33,4 +33,4 @@ export SINGULARITYENV_PERL5LIB="/opt/freesurfer/mni/lib/perl5"
 export SINGULARITYENV_FS_LICENSE="$FS_LICENSE"
 
 # Image digest auto-updated by GitHub Actions on push to main
-singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids@sha256:3b948888b796f35fe06d86227f55fe6ad2ac865c50b4709b425de6805fe7e346 python3 main.py
+singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids@sha256:491d10f619c5a3d2d18ff9804d9c32eca1870bf24fb3ae1a3dbeecfdf7796705 python3 main.py
