@@ -17,6 +17,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
     VECLIB_MAXIMUM_THREADS=1
  
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        libgl1 \
+        libglib2.0-0 \
+        curl \
+        ca-certificates \
         xvfb \
         git \
         libgl1 \
