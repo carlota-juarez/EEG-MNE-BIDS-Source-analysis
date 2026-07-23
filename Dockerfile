@@ -3,6 +3,7 @@ FROM python:3.11-slim
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_NO_CACHE_DIR=1 \
     PYTHONDONTWRITEBYTECODE=1 \
+    QT_QPA_PLATFORM=offscreen \
     MNE_BROWSER_BACKEND=matplotlib \
     MPLBACKEND=Agg \
     PYVISTA_OFF_SCREEN=true \
@@ -51,6 +52,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libxrender1 \
         perl \
         libxml-parser-perl \
+        libjpeg62-turbo \
+        libpng16-16 \
+        libtiff6 \
+        libxmu6 \
+        libxi6 \
+        libxt6 \
+        libxext6 \
+        libx11-6 \
+        libncurses6 \
+        liblapack3 \
+        libblas3 \
+        libquadmath0 \
+        libatomic1 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
  
@@ -95,6 +109,8 @@ RUN curl -fsSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/free
         /opt/freesurfer/fsfast \
         /opt/freesurfer/matlab \
         /opt/freesurfer/docs \
+    && test -f /opt/freesurfer/mni/lib/perl5/MNI/Startup.pm \
+    && test -x /opt/freesurfer/bin/recon-all
  
 WORKDIR /work
  
@@ -105,4 +121,4 @@ RUN ldconfig
 ENV FREESURFER_HOME=/opt/freesurfer \
     SUBJECTS_DIR=/opt/freesurfer/subjects \
     PERL5LIB=/opt/freesurfer/mni/lib/perl5 \
-    PATH=/opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:/opt/freesurfer/mni/bin:$PATH
+    PATH=/opt/freesurfer/bin:/opt/freesurfer/tktools:/opt/freesurfer/mni/bin:$PATH

@@ -1,35 +1,36 @@
 #!/bin/bash
 #PBS -l nodes=1:ppn=4
 #PBS -l mem=32gb
-#PBS -l walltime=12:00:00
+#PBS -l walltime=24:00:00
 set -e
 
 # Make output directory
 mkdir -p out_dir
 mkdir -p html_report
 
-# Moderate parallelism
-# Prevent from creating too many threads to avoid an Out Of Memory (OOM) error in Brainlife
-export OMP_NUM_THREADS=4
-export OPENBLAS_NUM_THREADS=4
-export MKL_NUM_THREADS=4
-export NUMEXPR_NUM_THREADS=4
-export VECLIB_MAXIMUM_THREADS=4
-export SINGULARITYENV_OMP_NUM_THREADS=4
-export SINGULARITYENV_OPENBLAS_NUM_THREADS=4
-export SINGULARITYENV_MKL_NUM_THREADS=4
-export SINGULARITYENV_NUMEXPR_NUM_THREADS=4
-export SINGULARITYENV_VECLIB_MAXIMUM_THREADS=4
+# Limit threads to avoid OOM; n_jobs=2 in pipeline_config for recon-all/source
+export OMP_NUM_THREADS=2
+export OPENBLAS_NUM_THREADS=2
+export MKL_NUM_THREADS=2
+export NUMEXPR_NUM_THREADS=2
+export VECLIB_MAXIMUM_THREADS=2
+export SINGULARITYENV_OMP_NUM_THREADS=2
+export SINGULARITYENV_OPENBLAS_NUM_THREADS=2
+export SINGULARITYENV_MKL_NUM_THREADS=2
+export SINGULARITYENV_NUMEXPR_NUM_THREADS=2
+export SINGULARITYENV_VECLIB_MAXIMUM_THREADS=2
 
-# Force PyVista/VTK to use a virtual GPU
- 
+# Headless rendering (PyVista / MNE 3D)
 export SINGULARITYENV_PYVISTA_OFF_SCREEN="true"
 export SINGULARITYENV_QT_QPA_PLATFORM="offscreen"
 export SINGULARITYENV_MPLBACKEND="Agg"
+export SINGULARITYENV_MNE_3D_BACKEND="pyvistaqt"
 export SINGULARITYENV_VTK_DEFAULT_OPENGL_WINDOW="vtkOSOpenGLRenderWindow"
 
-# Include the FreeSurfer FS_LICENSE for the computing resource used to launch the app
+# FreeSurfer: use Docker install paths; license comes from the compute resource
+export SINGULARITYENV_FREESURFER_HOME="/opt/freesurfer"
+export SINGULARITYENV_PERL5LIB="/opt/freesurfer/mni/lib/perl5"
 export SINGULARITYENV_FS_LICENSE="$FS_LICENSE"
 
-# Own image (uploaded to GitHub)
+# Image digest auto-updated by GitHub Actions on push to main
 singularity exec -e docker://ghcr.io/carlota-juarez/app-mne-bids@sha256:3b948888b796f35fe06d86227f55fe6ad2ac865c50b4709b425de6805fe7e346 python3 main.py

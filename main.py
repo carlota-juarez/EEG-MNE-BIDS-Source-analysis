@@ -574,7 +574,7 @@ with open(file_name, 'w') as f:
         ch_types = [meg_ch_types]
     f.write(f"ch_types = {ch_types}\n")
 
-    # General settings (always nedeed)
+    # General settings (always needed)
 
     subject = '01'
     f.write(f"subjects = ['{subject}']\n")
@@ -610,12 +610,10 @@ with open(file_name, 'w') as f:
     interactive = config.get('interactive', False)
     f.write(f"interactive = {interactive}\n")
     
-    # --------------
     run_source_estimation = config.get('run_source_estimation', True)
     if task_is_rest and not conditions and run_source_estimation:
         logger.warning("task_is_rest=True and no 'conditions' were provided, no evoked data created at the sensor-analysis stage, so source estimation cannot run for this dataset")
         run_source_estimation = False
-        # The following steps will not be run, the html report will be the same as the one after sensor analysis
     f.write(f"run_source_estimation = {run_source_estimation}\n")
 
     subjects_dir = config.get('subjects_dir', None)
@@ -630,14 +628,20 @@ with open(file_name, 'w') as f:
     if fsaverage_image.exists() and not target_fsaverage.exists():
         copytree(fsaverage_image, target_fsaverage)
 
-    f.write(f"subjects_dir = '{subjects_dir}'\n")
+    f.write(f"subjects_dir = r'{subjects_dir}'\n")
 
-    # BEM surface
-    # When this parameter is not defined, FreeSurfer runs recon-all
     use_template_mri = config.get('use_template_mri', None)
-    if use_template_mri == "" or use_template_mri == "null":
+    if use_template_mri in ("", "null"):
         use_template_mri = None
-    
+
+    needs_recon_all = run_source_estimation and not use_template_mri
+    if use_template_mri:
+        f.write(f"use_template_mri = '{use_template_mri}'\n")
+
+    if needs_recon_all:
+        # Limit parallel jobs to reduce OOM risk on Brainlife compute nodes
+        f.write("n_jobs = 2\n")
+
     adjust_coreg = config.get('adjust_coreg', False)
     f.write(f"adjust_coreg = {adjust_coreg}\n")
 
@@ -718,74 +722,83 @@ with open(file_name, 'w') as f:
     if inverse_targets:
         f.write(f"inverse_targets = {inverse_targets}\n")
 
-    # When running source analysis is desired (run_source_estimation = True) and use_template_montage is empty
-    # The subject's actual anatomy will be used and not a standard template
-    needs_recon_all = run_source_estimation and not use_template_mri
+# Determine pipeline steps
+if not run_source_estimation:
+    steps = None
+elif needs_recon_all:
+    steps = "freesurfer,source"
+else:
+    steps = "source"
 
-    if not run_source_estimation:
-        # Nothing to run at this stage. The user disabled source estimation or it was force disable because this is resting-state data
-        steps = None
+# FreeSurfer recon-all setup (subject anatomy, not template)
+if needs_recon_all:
+    if t1_path is None or not t1_path.exists():
+        raise FileNotFoundError(
+            "A T1w MRI is required to run recon-all. "
+            "Provide it via the 't1' parameter or set 'use_template_mri' to 'fsaverage' to skip recon-all."
+        )
 
-    elif needs_recon_all:
+    extension = "".join(t1_path.suffixes)
+    for target_root in (bids_root_path, deriv_root):
+        anat_dir = target_root / f'sub-{subject}' / 'anat'
+        anat_dir.mkdir(parents=True, exist_ok=True)
+        copyfile(t1_path, anat_dir / f'sub-{subject}_T1w{extension}')
 
-        if t1_path is None or not t1_path.exists():
-            raise FileNotFoundError("A T1w es needed to execute recon-all or set 'use_template_mri' to skip it")
-        # Copy the t1w file to the BIDS directory 
-        extension = "".join(t1_path.suffixes)
-        for target_root in (bids_root_path, deriv_root):
-            anat_dir = target_root/f'sub-{subject}'/'anat'
-            anat_dir.mkdir(parents=True, exist_ok=True)
-            copyfile(t1_path, anat_dir/f'sub-{subject}_T1w{extension}')
+    original_fs_home = Path(os.environ.get('FREESURFER_HOME', '/opt/freesurfer'))
+    license_target = __location__ / 'freesurfer_license.txt'
 
-        # Compute resource Freesurfer license or user license
-        original_fs_home = Path(os.environ.get('FREESURFER_HOME', '/opt/freesurfer'))
-        writable_fs_home = __location__ / 'freesurfer_home'
-        if not writable_fs_home.exists():
-            writable_fs_home.mkdir(parents=True)
-            for item in original_fs_home.iterdir():
-                link_path = writable_fs_home / item.name
-                if not link_path.exists():
-                    os.symlink(item, link_path)
+    fs_license = config.get('fs_license', None)
+    if fs_license and fs_license.strip() != "":
+        with open(license_target, 'w') as file:
+            file.write(fs_license.strip() + "\n")
+        logger.info("Using FreeSurfer license provided by the user via 'fs_license' parameter")
+    elif not license_target.exists():
+        resource_license = os.environ.get('FS_LICENSE')
+        if resource_license and Path(resource_license).exists():
+            copyfile(resource_license, license_target)
+            logger.info(f"Using FreeSurfer license from computing resource ({resource_license})")
 
-        license_target = writable_fs_home / 'license.txt'
+    if not license_target.exists():
+        raise FileNotFoundError(
+            "No FreeSurfer license available. Provide one in 'fs_license' "
+            "or ensure the computing resource exposes FS_LICENSE."
+        )
 
-        fs_license = config.get('fs_license', None)
-        if fs_license and fs_license.strip() != "":
-            # The user has provided their own license in Brainlife parameters
-            with open(license_target, 'w') as file:
-                file.write(fs_license.strip() + "\n")
-            logger.info("Using FreeSurfer license provided by the user via 'fs_license' parameter")
-        elif not license_target.exists():
-            # If the user has not provided a license, reuse the one specified by the computing resource (FS_LICENSE)
-            resource_license = os.environ.get('FS_LICENSE')
-            if resource_license and Path(resource_license).exists():
-                copyfile(resource_license, license_target)
-                logger.info(f"Using FreeSurfer license already available on the computing resource ({resource_license})")
+    mni_startup = original_fs_home / 'mni' / 'lib' / 'perl5' / 'MNI' / 'Startup.pm'
+    if not mni_startup.exists():
+        raise FileNotFoundError(
+            f"FreeSurfer MNI Perl modules not found at {mni_startup}. "
+            "Rebuild the Docker image with a complete FreeSurfer installation."
+        )
 
-        if not license_target.exists():
-            raise FileNotFoundError("No FreeSurfer license available. Provide one in the 'fs_license' parameter or make sure the computing resource exposes FS_LICENSE")
+    fs_path = str(original_fs_home.resolve())
+    subjects_dir_str = str(subjects_dir.resolve())
+    license_path = str(license_target.resolve())
 
-        os.environ['FREESURFER_HOME'] = str(writable_fs_home.resolve())
-        os.environ['FS_LICENSE'] = str(license_target.resolve())
-        
-        # Configurar variables de entorno vitales para que FreeSurfer/Perl encuentre MNI/Startup.pm
-        fs_path = str(writable_fs_home.resolve())
-        os.environ['PATH'] = f"{fs_path}/bin:{fs_path}/fsfast/bin:{fs_path}/tktools:{fs_path}/mni/bin:" + os.environ.get('PATH', '')
-        os.environ['PERL5LIB'] = f"{fs_path}/mni/lib/perl5"
-        
-        steps = "freesurfer,source"
+    os.environ['FREESURFER_HOME'] = fs_path
+    os.environ['FS_LICENSE'] = license_path
+    os.environ['SUBJECTS_DIR'] = subjects_dir_str
+    os.environ['PERL5LIB'] = f"{fs_path}/mni/lib/perl5"
+    os.environ['PATH'] = (
+        f"{fs_path}/bin:{fs_path}/tktools:{fs_path}/mni/bin:"
+        + os.environ.get('PATH', '')
+    )
 
-    else:
-        if use_template_mri:
-            f.write(f"use_template_mri = '{use_template_mri}'\n")
-        steps = "source"
+    with open(file_name, 'a') as f:
+        f.write("\n# FreeSurfer environment for recon-all\n")
+        f.write(f"os.environ['FREESURFER_HOME'] = r'{fs_path}'\n")
+        f.write(f"os.environ['FS_LICENSE'] = r'{license_path}'\n")
+        f.write(f"os.environ['SUBJECTS_DIR'] = r'{subjects_dir_str}'\n")
+        f.write(f"os.environ['PERL5LIB'] = r'{fs_path}/mni/lib/perl5'\n")
+
+    logger.info(f"FreeSurfer ready: FREESURFER_HOME={fs_path}, SUBJECTS_DIR={subjects_dir_str}")
 
 # Run python script
 
 if steps is not None:
     command = ["mne_bids_pipeline", f"--config={file_name}", f"--steps={steps}"]
     try:
-        subprocess.run(command, check=True)
+        subprocess.run(command, check=True, env=os.environ.copy())
     except subprocess.CalledProcessError as e:
         raise e
 else:
