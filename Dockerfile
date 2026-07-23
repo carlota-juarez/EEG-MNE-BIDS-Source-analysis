@@ -29,8 +29,6 @@ RUN rm -rf \
         /opt/freesurfer/matlab \
         /opt/freesurfer/docs
 
-# 3. Comprobar los archivos individualmente para ver cuál falla
-RUN test -f /opt/freesurfer/mni/lib/perl5/MNI/Startup.pm
 RUN test -x /opt/freesurfer/bin/recon-all
 # subir version a github 
 FROM python:3.11-slim
