@@ -7,9 +7,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gzip \
     && rm -rf /var/lib/apt/lists/*
 
+# 1. Separar la descarga y descompresión
 RUN curl -fsSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-linux-ubuntu22_amd64-7.4.1.tar.gz \
-    | tar -xz -C /opt \
-    && rm -rf \
+    | tar -xz -C /opt
+
+# 2. Separar la limpieza de carpetas innecesarias
+RUN rm -rf \
         /opt/freesurfer/subjects/fsaverage3 \
         /opt/freesurfer/subjects/fsaverage4 \
         /opt/freesurfer/subjects/fsaverage5 \
@@ -24,9 +27,11 @@ RUN curl -fsSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/free
         /opt/freesurfer/trctrain \
         /opt/freesurfer/fsfast \
         /opt/freesurfer/matlab \
-        /opt/freesurfer/docs \
-    && test -f /opt/freesurfer/mni/lib/perl5/MNI/Startup.pm \
-    && test -x /opt/freesurfer/bin/recon-all
+        /opt/freesurfer/docs
+
+# 3. Comprobar los archivos individualmente para ver cuál falla
+RUN test -f /opt/freesurfer/mni/lib/perl5/MNI/Startup.pm
+RUN test -x /opt/freesurfer/bin/recon-all
 # subir version a github 
 FROM python:3.11-slim
 
