@@ -29,6 +29,11 @@ RUN rm -rf \
         /opt/freesurfer/matlab \
         /opt/freesurfer/docs
 
+ENV FREESURFER_HOME=/opt/freesurfer \
+    SUBJECTS_DIR=/opt/freesurfer/subjects \
+    PERL5LIB=/opt/freesurfer/mni/lib/perl5 \
+    PATH=/opt/freesurfer/bin:/opt/freesurfer/tktools:/opt/freesurfer/mni/bin:$PATH
+
 RUN test -x /opt/freesurfer/bin/recon-all
 # subir version a github 
 FROM python:3.11-slim
@@ -136,8 +141,3 @@ WORKDIR /work
 RUN rm -f /bin/sh && ln -s /bin/bash /bin/sh
 
 RUN ldconfig
-
-ENV FREESURFER_HOME=/opt/freesurfer \
-    SUBJECTS_DIR=/opt/freesurfer/subjects \
-    PERL5LIB=/opt/freesurfer/mni/lib/perl5 \
-    PATH=/opt/freesurfer/bin:/opt/freesurfer/tktools:/opt/freesurfer/mni/bin:$PATH
