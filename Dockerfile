@@ -27,7 +27,7 @@ RUN curl -fsSL https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/free
         /opt/freesurfer/docs \
     && test -f /opt/freesurfer/mni/lib/perl5/MNI/Startup.pm \
     && test -x /opt/freesurfer/bin/recon-all
-
+# subir version a github 
 FROM python:3.11-slim
 
 ENV DEBIAN_FRONTEND=noninteractive \
