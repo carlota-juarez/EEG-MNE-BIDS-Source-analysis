@@ -24,6 +24,14 @@ jobs:
       # Configure buildx to use the cache
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          docker system prune -a --volumes -f
 
       - name: Build and push image
         id: build
