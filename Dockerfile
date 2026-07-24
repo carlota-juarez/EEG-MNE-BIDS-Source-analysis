@@ -31,6 +31,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         unzip \
         libgomp1 \
         libgsl-dev \
+        perl \
+        libjpeg62-turbo \
+        binutils \
+        psmisc \
         libfontconfig1 \
         libfreetype6 \
         libxkbcommon0 \

@@ -753,10 +753,25 @@ if needs_recon_all:
             file.write(fs_license.strip() + "\n")
         logger.info("Using FreeSurfer license provided by the user via 'fs_license' parameter")
     elif not license_target.exists():
+        # 1) Standard case: the compute resource exports FS_LICENSE pointing to a file
         resource_license = os.environ.get('FS_LICENSE')
-        if resource_license and Path(resource_license).exists():
-            copyfile(resource_license, license_target)
+        candidate_paths = []
+        if resource_license:
+            candidate_paths.append(Path(resource_license))
             logger.info(f"Using FreeSurfer license from computing resource ({resource_license})")
+        # 2) Fallback: some compute resources bake the license directly into the FreeSurfer install
+        candidate_paths += [
+            Path(os.environ.get('FREESURFER_HOME', '/opt/freesurfer')) / 'license.txt',
+            Path(os.environ.get('FREESURFER_HOME', '/opt/freesurfer')) / '.license',
+            Path('/opt/freesurfer/license.txt'),
+            Path('/usr/local/freesurfer/license.txt'),
+        ]
+
+        for candidate in candidate_paths:
+            if candidate and candidate.exists():
+                copyfile(candidate, license_target)
+                logger.info(f"Using FreeSurfer license from computing resource ({candidate})")
+                break
 
     if not license_target.exists():
         raise FileNotFoundError(
@@ -775,12 +790,19 @@ if needs_recon_all:
     subjects_dir_str = str(subjects_dir.resolve())
     license_path = str(license_target.resolve())
 
+    mni_dir = f"{fs_path}/mni"
+    minc_bin_dir = f"{mni_dir}/bin"
+    fsfast_home = f"{fs_path}/fsfast"
+
     os.environ['FREESURFER_HOME'] = fs_path
     os.environ['FS_LICENSE'] = license_path
     os.environ['SUBJECTS_DIR'] = subjects_dir_str
     os.environ['PERL5LIB'] = f"{fs_path}/mni/lib/perl5"
+    os.environ['MNI_DIR'] = mni_dir
+    os.environ['MINC_BIN_DIR'] = minc_bin_dir
+    os.environ['FSFAST_HOME'] = fsfast_home
     os.environ['PATH'] = (
-        f"{fs_path}/bin:{fs_path}/tktools:{fs_path}/mni/bin:"
+        f"{fs_path}/bin:{fs_path}/tktools:{minc_bin_dir}:{fs_path}/mni/bin:"
         + os.environ.get('PATH', '')
     )
 
@@ -790,6 +812,9 @@ if needs_recon_all:
         f.write(f"os.environ['FS_LICENSE'] = r'{license_path}'\n")
         f.write(f"os.environ['SUBJECTS_DIR'] = r'{subjects_dir_str}'\n")
         f.write(f"os.environ['PERL5LIB'] = r'{fs_path}/mni/lib/perl5'\n")
+        f.write(f"os.environ['MNI_DIR'] = r'{mni_dir}'\n")
+        f.write(f"os.environ['MINC_BIN_DIR'] = r'{minc_bin_dir}'\n")
+        f.write(f"os.environ['FSFAST_HOME'] = r'{fsfast_home}'\n")
 
     logger.info(f"FreeSurfer ready: FREESURFER_HOME={fs_path}, SUBJECTS_DIR={subjects_dir_str}")
 
